@@ -1,28 +1,21 @@
-namespace Controllers.authController;
+namespace server.Controllers;
 
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using RouteAttribute = Microsoft.AspNetCore.Components.RouteAttribute;
 
 [ApiController]
 [Route("auth")]
 public class AuthController: ControllerBase{
 
-    [HttpGet("login")]
-    [ProducesResponseType<int>(StatusCodes.Status200OK)]
-    public IActionResult Login()
+    [HttpPost("login")]
+    // [ProducesResponseType<int>(StatusCodes.Status200OK)]
+    public IActionResult Login([FromBody] string data)
     {
 
-        var obj = new {
-            first = "Ivan",
-            last = "Gerdzhikov"
-        };
+        
 
-        string output = JsonConvert.SerializeObject(obj);
 
-        return Ok(output);
-
+        return Ok();
     }
 
 }
