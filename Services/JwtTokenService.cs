@@ -10,41 +10,39 @@ namespace server.Services;
 
 public class JwtTokenService : IJwtTokenService
 {
-    private readonly IConfiguration configuration;
+    private readonly IConfiguration _configuration;
 
     private   readonly UserManager<IdentityUser> _userManager;
 
-
-
     public JwtTokenService(IConfiguration configuration, UserManager<IdentityUser> userManager){
-        this.configuration = configuration;
+        _configuration = configuration;
         _userManager = userManager;
     }
 
 
 
-    public  async Task<string> GenerateJwtToken(AuthFormModel model){
+    public  async Task<string> GenerateJwtToken(string Email){
 
-                var result1 = await _userManager.FindByEmailAsync(model.Email);
+                var result1 = await _userManager.FindByEmailAsync(Email);
 
                 
-                var issuer = configuration["Jwt:Issuer"];
+                var issuer = _configuration["Jwt:Issuer"];
 
-                var audience = configuration["Jwt:Audience"];
+                var audience = _configuration["Jwt:Audience"];
 
                 var key = Encoding.UTF8.GetBytes
-                (configuration["Jwt:Key"]);
+                (_configuration["Jwt:Key"]);
 
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(
                     [
                         new Claim("Id", result1.Id),
-                        new Claim(JwtRegisteredClaimNames.Email, model.Email),
+                        new Claim(JwtRegisteredClaimNames.Email, Email),
                         new Claim(JwtRegisteredClaimNames.Jti,
                         Guid.NewGuid().ToString())
                     ]),
-                    Expires = DateTime.Now.AddHours(5),
+                    Expires = DateTime.Now.AddMinutes(30),
                     Issuer = issuer,
                     Audience = audience,
                     SigningCredentials = new SigningCredentials
@@ -62,6 +60,30 @@ public class JwtTokenService : IJwtTokenService
     }
 
 
+
+    public async Task<bool> ValidateJwtToken(string token){
+        var handler = new JwtSecurityTokenHandler();
+
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = false, 
+            ValidIssuer = _configuration["Jwt:Issuer"],
+            ValidAudience = _configuration["Jwt:Audience"]
+        };
+
+        var result = await handler.ValidateTokenAsync(token, tokenValidationParameters);
+
+        if (!result.IsValid){
+            return false;
+        }
+
+        return true;
+
+    }
 
 
 

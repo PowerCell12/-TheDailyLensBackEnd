@@ -1,10 +1,11 @@
 namespace server.Controllers;
 
-using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using NuGet.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using server.Contracts;
 using server.Extentions;
 using server.Models.AuthModels;
@@ -42,7 +43,7 @@ public class AuthenticationController: ControllerBase
             var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, lockoutOnFailure: false);
             if (result.Succeeded)
             {
-                string stringToken = await _jwtTokenService.GenerateJwtToken(model);
+                string stringToken = await _jwtTokenService.GenerateJwtToken(model.Email);
 
                 return Ok(stringToken);
             }
@@ -68,7 +69,7 @@ public class AuthenticationController: ControllerBase
             bool createdUser = await _authService.CreateUser(model);
 
             if (createdUser){
-                var stringToken = await _jwtTokenService.GenerateJwtToken(model);
+                var stringToken = await _jwtTokenService.GenerateJwtToken(model.Email);
                 return Ok(stringToken);
             }
             else{
@@ -84,6 +85,46 @@ public class AuthenticationController: ControllerBase
         return Unauthorized(new { Message = "Validation failed", Errors = DataErrros });
     }
 
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> LogoutPost(){
+        await _signInManager.SignOutAsync();
+
+        return Ok();
+    }
+
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> RefreshToken(){
+
+        string token = Request.Headers.Authorization.ToString().Split(" ")[1];  
+
+
+        var isValid = await _jwtTokenService.ValidateJwtToken(token);
+        if (!isValid){
+            return Unauthorized("Invalid token");
+        }
+
+
+        var handler = new JwtSecurityTokenHandler();
+        JwtSecurityToken jwtToken = handler.ReadJwtToken(token);
+
+
+        bool isExpired = DateTime.UtcNow >= jwtToken.ValidTo;
+
+        if (isExpired){
+                var userEmail = jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.Email).Value;
+                var newToken = await _jwtTokenService.GenerateJwtToken(userEmail);
+
+                return Ok(newToken);
+        }
+        else{
+            return BadRequest("Token is not expired");
+        }
+        
+    
+    }
 
 }
 
