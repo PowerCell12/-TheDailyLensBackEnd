@@ -66,8 +66,9 @@ public class AuthenticationController: ControllerBase
 
         if (ModelState.IsValid){
 
-            bool createdUser = await _authService.CreateUser(model);
 
+            bool createdUser = await _authService.CreateUser(model);
+            
             if (createdUser){
                 var stringToken = await _jwtTokenService.GenerateJwtToken(model.Email);
                 return Ok(stringToken);
@@ -75,7 +76,7 @@ public class AuthenticationController: ControllerBase
             else{
                 var creatingUserErrors = ModelState.GetErrors();
 
-                return BadRequest(new { Message = "Creating user failed", Errors = creatingUserErrors });
+                return BadRequest(new { Message = "Username or Gmail is already in use", Errors = creatingUserErrors });
             }
 
         }

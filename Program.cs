@@ -18,6 +18,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
+    options.User.RequireUniqueEmail = true;
     }).AddEntityFrameworkStores<TheDailyLensContext>();
 
 
