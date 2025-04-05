@@ -2,15 +2,16 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity;
+using server.Data;
 
 [ApiController]
 [Route("user")]
 public class UserController : ControllerBase
 {
 
-    private UserManager<IdentityUser> _userManager;
+    private UserManager<ApplicationUser> _userManager;
 
-    public UserController(UserManager<IdentityUser> userManager){
+    public UserController(UserManager<ApplicationUser> userManager){
         _userManager = userManager;
     }
 
@@ -20,7 +21,7 @@ public class UserController : ControllerBase
 
         string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
-        IdentityUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
 
 
         return Ok(new {

@@ -2,16 +2,17 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using server.Data;
 
 public class GetUserByJwtTokenClass{
 
-    private UserManager<IdentityUser> _userManager;
+    private UserManager<ApplicationUser> _userManager;
 
-    public GetUserByJwtTokenClass(UserManager<IdentityUser> userManager){
+    public GetUserByJwtTokenClass(UserManager<ApplicationUser> userManager){
         _userManager = userManager;
     }
 
-    public async Task<IdentityUser> GetUserByJwtToken(String token){
+    public async Task<ApplicationUser> GetUserByJwtToken(String token){
 
         // Validate the token
         var handler = new JwtSecurityTokenHandler();

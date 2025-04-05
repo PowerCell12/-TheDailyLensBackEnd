@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using server.Contracts;
+using server.Data;
 using server.Extentions;
 using server.Models.AuthModels;
 using server.Services;
@@ -15,12 +16,12 @@ using server.Services;
 [Route("auth")]
 public class AuthenticationController: ControllerBase 
 {
-    private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IJwtTokenService _jwtTokenService;
 
     private readonly IAuthService _authService;
     
-    public AuthenticationController(SignInManager<IdentityUser> signInManager, IJwtTokenService jwtTokenService, IAuthService authService)
+    public AuthenticationController(SignInManager<ApplicationUser> signInManager, IJwtTokenService jwtTokenService, IAuthService authService)
     {
         _signInManager = signInManager;
         _jwtTokenService = jwtTokenService;

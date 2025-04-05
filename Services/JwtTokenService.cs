@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using server.Contracts;
+using server.Data;
 using server.Models.AuthModels;
 
 namespace server.Services;
@@ -12,9 +13,9 @@ public class JwtTokenService : IJwtTokenService
 {
     private readonly IConfiguration _configuration;
 
-    private   readonly UserManager<IdentityUser> _userManager;
+    private   readonly UserManager<ApplicationUser> _userManager;
 
-    public JwtTokenService(IConfiguration configuration, UserManager<IdentityUser> userManager){
+    public JwtTokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager){
         _configuration = configuration;
         _userManager = userManager;
     }

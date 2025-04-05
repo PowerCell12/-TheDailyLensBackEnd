@@ -13,7 +13,7 @@ var connectionString = builder.Configuration.GetConnectionString("TheDailyLensCo
 
 builder.Services.AddDbContext<TheDailyLensContext>(options => options.UseSqlServer(connectionString));
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options => {
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
     options.SignIn.RequireConfirmedAccount = false;
     options.Password.RequireDigit = false;
     options.Password.RequireNonAlphanumeric = false;
