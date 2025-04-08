@@ -1,7 +1,9 @@
 
+using System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity;
 using server.Data;
 
@@ -13,22 +15,33 @@ public class UserController : ControllerBase
 
     private UserManager<ApplicationUser> _userManager;
 
-    public UserController(UserManager<ApplicationUser> userManager){
+    private readonly TheDailyLensContext _context;
+
+    public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context)
+    {
         _userManager = userManager;
+        _context = context;
     }
 
 
     [HttpGet("info")]
-    public async  Task<IActionResult> GetUserInfo(){
+    public async Task<IActionResult> GetUserInfo()
+    {
 
         string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
         ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
 
 
-        return Ok(new {
+        return Ok(new
+        {
             name = user.UserName,
-            email = user.Email
+            email = user.Email,
+            accountType = user.AccountType,
+            imageUrl = user.ImageUrl,
+            bio = user.Bio,
+            country = user.Country,
+            fullName = user.FullName
         });
 
     }
@@ -37,6 +50,7 @@ public class UserController : ControllerBase
     public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
     {
         string path = "wwwroot/images/" + file.FileName;
+        string path1 = "images/" + file.FileName;
 
         using (Stream stream = file.OpenReadStream())
         {
@@ -45,12 +59,26 @@ public class UserController : ControllerBase
                 await stream.CopyToAsync(fileStream);
             }
         }
-        
-        // save to the database the path, to the exact user, make a limit for the size of an image
 
-        Console.WriteLine("File uploaded: " + file.FileName);
+        if (file.Length > 5_242_880)
+        {
+            return BadRequest("File is too large");
+        }
+
+        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
+
+        user.ImageUrl = path1;
+        _context.Update(user);
+        await _context.SaveChangesAsync();
+
         return Ok();
     }
-    
+
 
 }
