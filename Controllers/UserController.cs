@@ -1,11 +1,14 @@
 
 using System;
+using System.Data.OleDb;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity;
 using server.Data;
+using server.Extentions;
+using server.Models.UserModels;
 
 [ApiController]
 [Route("user")]
@@ -78,6 +81,80 @@ public class UserController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok();
+    }
+    
+
+    [HttpPost("uploadImageWithCancel")]
+    public async Task<IActionResult> UploadImage([FromForm] string file){
+        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+
+
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
+
+
+        if (file == "1"){
+            user.ImageUrl = null;
+            _context.Update(user);
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
+
+        if (file.Contains("wwwroot/images/")){
+            while (file.Contains("wwwroot/images/")){
+                file = file.Replace("wwwroot/images/", "");
+            }
+        }
+        
+        string path = "wwwroot/images/" + file;
+
+        user.ImageUrl = path;
+        _context.Update(user);
+        await _context.SaveChangesAsync();
+
+        return Ok();
+
+    }
+
+
+    [HttpPost("editProfile")]
+    public async Task<IActionResult> EditProfile([FromBody] EditProfiileModel model){
+
+        if (ModelState.IsValid){
+
+            string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            user.UserName = model.UserName;
+            user.Email = model.Email;
+            user.FullName = model.FullName;
+            user.Country = model.Country;
+            user.Bio = model.Bio;
+            _context.Update(user);
+            await _context.SaveChangesAsync();
+
+            return Ok(new {
+                username = user.UserName,
+                email = user.Email,
+                bio = user.Bio,
+                country = user.Country,
+                fullName = user.FullName
+            });
+        }
+        else{
+            return BadRequest(new { Message = "There was an error, please try again", Errors = ModelState.GetErrors()});
+        }
+
+
     }
 
 
