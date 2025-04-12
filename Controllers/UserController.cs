@@ -110,7 +110,7 @@ public class UserController : ControllerBase
             }
         }
         
-        string path = "wwwroot/images/" + file;
+        string path = "images/" + file;
 
         user.ImageUrl = path;
         _context.Update(user);
@@ -154,6 +154,23 @@ public class UserController : ControllerBase
             return BadRequest(new { Message = "There was an error, please try again", Errors = ModelState.GetErrors()});
         }
 
+
+    }
+
+    [HttpDelete("deleteProfile")]
+    public async Task<IActionResult> DeleteProfile(){
+
+        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
+
+        await _userManager.DeleteAsync(user);
+
+        return Ok();
 
     }
 
