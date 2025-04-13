@@ -63,6 +63,7 @@ public class UserController : ControllerBase
             }
         }
 
+
         if (file.Length > 5_242_880)
         {
             return BadRequest("File is too large");
@@ -94,6 +95,11 @@ public class UserController : ControllerBase
         {
             return NotFound("User not found");
         }
+
+
+        // FIRST DON'T MAKE THE IMAGE URL NULL make it the pat to the default image and fix in frontend
+        // SECOND REMOVE THE IMAGE FROM THE SERVER 
+        // THIRD THIS METHOD IS PROBABLY TWO METHODS SEE IF TRUE (CHECK DEEPSEEK)
 
 
         if (file == "1"){
