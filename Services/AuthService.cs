@@ -16,7 +16,7 @@ namespace server.Services
 
         public async Task<bool> CreateUser(AuthFormModel model){
 
-            var user = new ApplicationUser() { UserName = model.Email, Email = model.Email };
+            var user = new ApplicationUser() { UserName = model.Email, Email = model.Email, ImageUrl = model.ImageUrl };
 
             var createduUser =  await _userManager.CreateAsync(user, model.Password);
 

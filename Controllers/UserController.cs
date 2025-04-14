@@ -49,26 +49,24 @@ public class UserController : ControllerBase
 
     }
 
-    [HttpPost("uploadImage")]
+    [HttpPost("uploadImage")]   
     public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
     {
-        string path = "wwwroot/images/" + file.FileName;
-        string path1 = "images/" + file.FileName;
-
-        using (Stream stream = file.OpenReadStream())
-        {
-            using (var fileStream = System.IO.File.Create(path))
-            {
-                await stream.CopyToAsync(fileStream);
-            }
-        }
-
-
         if (file.Length > 5_242_880)
         {
             return BadRequest("File is too large");
         }
 
+        string uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
+        string path = "wwwroot/images/" + uniqueFileName;
+        string path1 = "images/" + uniqueFileName;
+
+        using (var stream = new FileStream(path, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+
         string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
         ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
 
@@ -76,55 +74,42 @@ public class UserController : ControllerBase
         {
             return NotFound("User not found");
         }
+
+
+        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
+            if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
+        }
+
 
         user.ImageUrl = path1;
         _context.Update(user);
         await _context.SaveChangesAsync();
 
-        return Ok();
+        return Ok(new { imageUrl = path1});
     }
     
 
-    [HttpPost("uploadImageWithCancel")]
-    public async Task<IActionResult> UploadImage([FromForm] string file){
+    [HttpPost("resetProfileImage")]
+    public async Task<IActionResult> ResetProfileImage(){
         string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
         ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
 
-
-        if (user == null)
-        {
+        if (user == null){
             return NotFound("User not found");
         }
 
-
-        // FIRST DON'T MAKE THE IMAGE URL NULL make it the pat to the default image and fix in frontend
-        // SECOND REMOVE THE IMAGE FROM THE SERVER 
-        // THIRD THIS METHOD IS PROBABLY TWO METHODS SEE IF TRUE (CHECK DEEPSEEK)
-
-
-        if (file == "1"){
-            user.ImageUrl = null;
-            _context.Update(user);
-            await _context.SaveChangesAsync();
-
-            return Ok();
+        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
+            if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
         }
 
-        if (file.Contains("wwwroot/images/")){
-            while (file.Contains("wwwroot/images/")){
-                file = file.Replace("wwwroot/images/", "");
-            }
-        }
-        
-        string path = "images/" + file;
 
-        user.ImageUrl = path;
+        user.ImageUrl = "/PersonDefault.png";
         _context.Update(user);
         await _context.SaveChangesAsync();
 
         return Ok();
-
     }
+
 
 
     [HttpPost("editProfile")]

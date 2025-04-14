@@ -66,10 +66,8 @@ public class AuthenticationController: ControllerBase
     public async Task<IActionResult> RegisterPost([FromBody] AuthFormModel model){
 
         if (ModelState.IsValid){
-
-
             bool createdUser = await _authService.CreateUser(model);
-            
+            Console.Write(createdUser);
             if (createdUser){
                 var stringToken = await _jwtTokenService.GenerateJwtToken(model.Email);
                 return Ok(stringToken);

@@ -13,4 +13,5 @@ public class AuthFormModel{
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
+        public string ImageUrl {get; set;}
 }
