@@ -20,6 +20,8 @@ public class UserController : ControllerBase
 
     private readonly TheDailyLensContext _context;
 
+    private readonly string[] notProfilePicture = ["CreateBlog"];
+
     public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context)
     {
         _userManager = userManager;
@@ -49,17 +51,30 @@ public class UserController : ControllerBase
 
     }
 
+
     [HttpPost("uploadImage")]   
-    public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
+    public async Task<IActionResult> UploadImage([FromForm] IFormFile file,[FromForm] string frontEndUrl)
     {
+        string path;
+        string path1;
+
         if (file.Length > 5_242_880)
         {
             return BadRequest("File is too large");
         }
 
-        string uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
-        string path = "wwwroot/images/" + uniqueFileName;
-        string path1 = "images/" + uniqueFileName;
+
+        switch(frontEndUrl){
+            case "CreateBlog":
+                path = "wwwroot/images/BlogsImages/" + file.FileName;
+                path1 = "images/BlogsImages/" + file.FileName;
+                break;
+            default:
+                string uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
+                path = "wwwroot/images/" + uniqueFileName;
+                path1 = "images/" + uniqueFileName;
+                break;
+        }
 
         using (var stream = new FileStream(path, FileMode.Create))
         {
@@ -67,27 +82,29 @@ public class UserController : ControllerBase
         }
 
 
-        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+        if (!notProfilePicture.Contains(frontEndUrl)){
+            string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
 
-        if (user == null)
-        {
-            return NotFound("User not found");
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
+                if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
+            }
+
+
+            user.ImageUrl = path1;
+            _context.Update(user);
+            await _context.SaveChangesAsync();
         }
-
-
-        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
-            if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
-        }
-
-
-        user.ImageUrl = path1;
-        _context.Update(user);
-        await _context.SaveChangesAsync();
 
         return Ok(new { imageUrl = path1});
     }
     
+
 
     [HttpPost("resetProfileImage")]
     public async Task<IActionResult> ResetProfileImage(){
