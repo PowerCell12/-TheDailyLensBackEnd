@@ -87,5 +87,20 @@ public class JwtTokenService : IJwtTokenService
     }
 
 
+    public async Task<ApplicationUser> GetUserByJwtToken(string token){
+
+        // Validate the token
+        var handler = new JwtSecurityTokenHandler();
+        var jsonToken = handler.ReadJwtToken(token);
+
+        var userId = jsonToken.Claims.FirstOrDefault(c => c.Type == "Id")?.Value;
+
+        ApplicationUser user = await _userManager.FindByIdAsync(userId);
+
+        return user;
+    }
+
+
+
 
 }

@@ -1,11 +1,7 @@
-
-using System;
-using System.Data.OleDb;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity;
+using server.Contracts;
 using server.Data;
 using server.Extentions;
 using server.Models.UserModels;
@@ -20,12 +16,15 @@ public class UserController : ControllerBase
 
     private readonly TheDailyLensContext _context;
 
+    private IJwtTokenService _jwtTokenService;
+
     private readonly string[] notProfilePicture = ["CreateBlog"];
 
-    public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context)
+    public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context, IJwtTokenService jwtTokenService)
     {
         _userManager = userManager;
         _context = context;
+        _jwtTokenService = jwtTokenService;
     }
 
 
@@ -35,7 +34,7 @@ public class UserController : ControllerBase
 
         string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
-        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
 
 
         return Ok(new
@@ -84,7 +83,7 @@ public class UserController : ControllerBase
 
         if (!notProfilePicture.Contains(frontEndUrl)){
             string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
 
             if (user == null)
             {
@@ -109,7 +108,7 @@ public class UserController : ControllerBase
     [HttpPost("resetProfileImage")]
     public async Task<IActionResult> ResetProfileImage(){
         string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
 
         if (user == null){
             return NotFound("User not found");
@@ -135,7 +134,7 @@ public class UserController : ControllerBase
         if (ModelState.IsValid){
 
             string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
 
             if (user == null)
             {
@@ -169,13 +168,18 @@ public class UserController : ControllerBase
     public async Task<IActionResult> DeleteProfile(){
 
         string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        ApplicationUser user = await new GetUserByJwtTokenClass(_userManager).GetUserByJwtToken(token);
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
 
         if (user == null)
         {
             return NotFound("User not found");
         }
 
+
+        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
+            if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
+        }
+        
         await _userManager.DeleteAsync(user);
 
         return Ok();
