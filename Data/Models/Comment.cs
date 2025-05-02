@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using server.Data.Models.Blogs;
-using server.Data.Models.Replies;
 
 namespace server.Data.Models.Comments;
 
@@ -15,6 +14,10 @@ public class Comment{
 
     public int Likes {get; set;}
 
+    public int Dislikes {get; set;}
+
+    public DateTime CreatedAt {get; set;}
+
     [ForeignKey("Author")]
     public string AuthorId {get; set;}
 
@@ -25,5 +28,14 @@ public class Comment{
 
     public Blog Blog {get; set;} = null!;
 
-    public List<Reply> Replies {get; set;} = [];
+    public int? ParentCommentId { get; set; }
+    
+    public Comment? ParentComment { get; set; }
+
+    public List<Comment> Replies { get; set; } = [];    
+
+
+    public ICollection<UserCommentLike> LikedByUsers { get; set; }    = [];
+    public ICollection<UserCommentDislike> DislikedByUsers { get; set; } = [];
+
 }

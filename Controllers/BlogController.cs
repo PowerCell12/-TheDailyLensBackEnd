@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using server.Contracts;
 using server.Data;
-using server.Data.Models.Blogs;
 using server.Models.BlogModels;
+using server.Data.Models.Blogs;
+using server.Data.Models.Comments;
 
 namespace server.Controllers;
 
@@ -34,8 +34,7 @@ public class BlogController: ControllerBase{
             return BadRequest("Validation failed");
         }
 
-        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
         Blog blog = new(){
             Title = data.Title,
@@ -56,7 +55,7 @@ public class BlogController: ControllerBase{
     } 
 
 
-    [HttpGet]
+    [HttpGet("list")]
     public async Task<IActionResult> GetBlogs([FromQuery] int amount, [FromQuery] string type){
 
         if (amount < 1) amount = 10;
@@ -68,5 +67,32 @@ public class BlogController: ControllerBase{
         return Ok(blogs);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteBlog([FromRoute] int id){
+        bool isDeleted = await _blogService.DeleteBlog(id);
 
+        if (!isDeleted) return BadRequest("Blog not found");
+
+        return Ok("Blog deleted");
+    }
+
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetBlog([FromRoute] int id){
+        HomePageBlogData blog = _blogService.GetBlogByTitle(id);
+
+        if (blog == null) return BadRequest("Blog not found");
+
+        return Ok(blog);
+    }
+
+
+    [HttpGet("{id}/comments")]
+    public async Task<IActionResult> GetBlogComments([FromRoute] int id){
+        List<Comment> comments = _blogService.GetCommentsByBlogId(id).OrderByDescending(x => x.CreatedAt).ToList();
+        
+        if (comments == null) return BadRequest("Blog not found");
+
+        return Ok(comments);
+    }
 }

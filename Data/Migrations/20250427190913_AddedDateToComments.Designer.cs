@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using server.Data;
 
@@ -11,9 +12,11 @@ using server.Data;
 namespace server.Data.Migrations
 {
     [DbContext(typeof(TheDailyLensContext))]
-    partial class TheDailyLensContextModelSnapshot : ModelSnapshot
+    [Migration("20250427190913_AddedDateToComments")]
+    partial class AddedDateToComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -313,9 +316,6 @@ namespace server.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Dislikes")
-                        .HasColumnType("int");
-
                     b.Property<int>("Likes")
                         .HasColumnType("int");
 
@@ -352,36 +352,6 @@ namespace server.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tags");
-                });
-
-            modelBuilder.Entity("server.Data.Models.UserCommentDislike", b =>
-                {
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ApplicationUserId", "CommentId");
-
-                    b.HasIndex("CommentId");
-
-                    b.ToTable("UserCommentDislikes");
-                });
-
-            modelBuilder.Entity("server.Data.Models.UserCommentLike", b =>
-                {
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("CommentId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ApplicationUserId", "CommentId");
-
-                    b.HasIndex("CommentId");
-
-                    b.ToTable("UserCommentLikes");
                 });
 
             modelBuilder.Entity("BlogTag", b =>
@@ -487,51 +457,6 @@ namespace server.Data.Migrations
                     b.Navigation("ParentComment");
                 });
 
-            modelBuilder.Entity("server.Data.Models.UserCommentDislike", b =>
-                {
-                    b.HasOne("server.Data.ApplicationUser", "ApplicationUser")
-                        .WithMany("DislikedComments")
-                        .HasForeignKey("ApplicationUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("server.Data.Models.Comments.Comment", "Comment")
-                        .WithMany("DislikedByUsers")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationUser");
-
-                    b.Navigation("Comment");
-                });
-
-            modelBuilder.Entity("server.Data.Models.UserCommentLike", b =>
-                {
-                    b.HasOne("server.Data.ApplicationUser", "ApplicationUser")
-                        .WithMany("LikedComments")
-                        .HasForeignKey("ApplicationUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("server.Data.Models.Comments.Comment", "Comment")
-                        .WithMany("LikedByUsers")
-                        .HasForeignKey("CommentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationUser");
-
-                    b.Navigation("Comment");
-                });
-
-            modelBuilder.Entity("server.Data.ApplicationUser", b =>
-                {
-                    b.Navigation("DislikedComments");
-
-                    b.Navigation("LikedComments");
-                });
-
             modelBuilder.Entity("server.Data.Models.Blogs.Blog", b =>
                 {
                     b.Navigation("Comments");
@@ -539,10 +464,6 @@ namespace server.Data.Migrations
 
             modelBuilder.Entity("server.Data.Models.Comments.Comment", b =>
                 {
-                    b.Navigation("DislikedByUsers");
-
-                    b.Navigation("LikedByUsers");
-
                     b.Navigation("Replies");
                 });
 #pragma warning restore 612, 618

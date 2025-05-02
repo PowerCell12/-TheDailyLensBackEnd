@@ -15,9 +15,12 @@ public class JwtTokenService : IJwtTokenService
 
     private   readonly UserManager<ApplicationUser> _userManager;
 
-    public JwtTokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager){
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public JwtTokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor){
         _configuration = configuration;
         _userManager = userManager;
+        _httpContextAccessor = httpContextAccessor;
     }
 
 
@@ -87,7 +90,8 @@ public class JwtTokenService : IJwtTokenService
     }
 
 
-    public async Task<ApplicationUser> GetUserByJwtToken(string token){
+    public async Task<ApplicationUser> GetUserByJwtToken(){
+        string token = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString().Replace("Bearer ", "");
 
         // Validate the token
         var handler = new JwtSecurityTokenHandler();

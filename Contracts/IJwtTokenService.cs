@@ -8,6 +8,6 @@ public interface IJwtTokenService{
 
     public Task<bool> ValidateJwtToken(string token); 
 
-    public Task<ApplicationUser> GetUserByJwtToken(string token);
+    public Task<ApplicationUser> GetUserByJwtToken();
 
 }

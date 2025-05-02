@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using server.Contracts;
 using server.Data;
 using server.Extentions;
+using server.Models.BlogModels;
 using server.Models.UserModels;
 
 [ApiController]
@@ -18,24 +20,39 @@ public class UserController : ControllerBase
 
     private IJwtTokenService _jwtTokenService;
 
-    private readonly string[] notProfilePicture = ["CreateBlog"];
+    private IBlogService _blogService;
 
-    public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context, IJwtTokenService jwtTokenService)
+    private readonly string[] notProfilePicture = ["CreateBlog", "ShowComment"];
+
+    public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService)
     {
-        _userManager = userManager;
-        _context = context;
+        _blogService = blogService;
         _jwtTokenService = jwtTokenService;
+        _context = context;
+        _userManager = userManager;
     }
+    
 
 
     [HttpGet("info")]
     public async Task<IActionResult> GetUserInfo()
     {
 
-        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
 
-        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
+
+        ApplicationUser user1 = await _context.Users
+        .Include(u => u.LikedComments)
+        .ThenInclude(c => c.Comment)
+        .Include(u => u.DislikedComments)
+        .ThenInclude(c => c.Comment)
+        .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
 
         return Ok(new
         {
@@ -45,9 +62,25 @@ public class UserController : ControllerBase
             imageUrl = user.ImageUrl,
             bio = user.Bio,
             country = user.Country,
-            fullName = user.FullName
+            fullName = user.FullName,
+            id = user.Id,
+            likedComments = user1.LikedComments.Select(x => x.Comment.Id).ToList(),
+            dislikedComments = user1.DislikedComments.Select(x => x.Comment.Id).ToList()
         });
 
+    }
+
+    [HttpGet("{authorId}")]
+    public async Task<IActionResult> GetUserInfo([FromRoute] string authorId){
+
+        ApplicationUser user = await _userManager.FindByIdAsync(authorId);
+
+        return Ok(new
+        {
+            name = user.UserName,
+            imageUrl = user.ImageUrl,
+
+        });
     }
 
 
@@ -68,6 +101,10 @@ public class UserController : ControllerBase
                 path = "wwwroot/images/BlogsImages/" + file.FileName;
                 path1 = "images/BlogsImages/" + file.FileName;
                 break;
+            case "ShowComment":
+                path = "wwwroot/images/CommentImages/" + file.FileName;
+                path1 = "images/CommentImages/" + file.FileName;
+                break;
             default:
                 string uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
                 path = "wwwroot/images/" + uniqueFileName;
@@ -82,8 +119,7 @@ public class UserController : ControllerBase
 
 
         if (!notProfilePicture.Contains(frontEndUrl)){
-            string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
+            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
             if (user == null)
             {
@@ -107,8 +143,7 @@ public class UserController : ControllerBase
 
     [HttpPost("resetProfileImage")]
     public async Task<IActionResult> ResetProfileImage(){
-        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
         if (user == null){
             return NotFound("User not found");
@@ -133,8 +168,7 @@ public class UserController : ControllerBase
 
         if (ModelState.IsValid){
 
-            string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
+            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
             if (user == null)
             {
@@ -167,8 +201,7 @@ public class UserController : ControllerBase
     [HttpDelete("deleteProfile")]
     public async Task<IActionResult> DeleteProfile(){
 
-        string token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken(token);
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
         if (user == null)
         {
@@ -184,6 +217,14 @@ public class UserController : ControllerBase
 
         return Ok();
 
+    }
+
+
+    [HttpGet("{userName}/getBlogsByUser")]
+    public async Task<IActionResult> GetBlogsByUser([FromRoute] string userName){
+        List<HomePageBlogData> blogs = _blogService.GetBlogsByUserId(userName);
+
+        return Ok(blogs);
     }
 
 

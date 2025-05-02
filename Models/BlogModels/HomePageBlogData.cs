@@ -1,3 +1,4 @@
+using server.Data.Models.Comments;
 using server.Data.Models.Tags;
 
 namespace server.Models.BlogModels;
@@ -24,4 +25,5 @@ public class HomePageBlogData{
 
     public List<string> Tags {get; set;}
 
+    public List<Comment> Comments {get; set;}
 }

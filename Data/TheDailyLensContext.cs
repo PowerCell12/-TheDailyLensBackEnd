@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using server.Data.Models;
 using server.Data.Models.Blogs;
 using server.Data.Models.Comments;
-using server.Data.Models.Replies;
 using server.Data.Models.Tags;
 
 namespace server.Data;
@@ -13,9 +13,12 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
 
     public DbSet<Comment> Comments {get; set;}
 
-    public DbSet<Reply> Replies {get; set;}
 
     public DbSet<Tag> Tags {get; set;}
+
+    public DbSet<UserCommentLike> UserCommentLikes {get; set;}
+
+    public DbSet<UserCommentDislike> UserCommentDislikes {get; set;}
 
 
     public TheDailyLensContext(DbContextOptions<TheDailyLensContext> options): base(options){
@@ -23,21 +26,53 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
     } 
 
     protected override void OnModelCreating(ModelBuilder builder){
-     
+        base.OnModelCreating(builder);
+
         builder.Entity<Comment>().HasOne(c => c.Author)
         .WithMany()
         .HasForeignKey(c => c.AuthorId)
         .OnDelete(DeleteBehavior.Restrict);
 
-
-        builder.Entity<Reply>().HasOne(r => r.Author)
-        .WithMany()
-        .HasForeignKey(r => r.AuthorId)
+    
+        builder.Entity<Comment>()
+        .HasOne(c => c.ParentComment)
+        .WithMany(c => c.Replies)
+        .HasForeignKey(c => c.ParentCommentId)
         .OnDelete(DeleteBehavior.Restrict); 
 
 
-     
-        base.OnModelCreating(builder);
+
+        builder.Entity<UserCommentLike>()
+        .HasKey(ul => new { ul.ApplicationUserId, ul.CommentId });
+
+        builder.Entity<UserCommentLike>()
+        .HasOne(ul => ul.ApplicationUser)
+        .WithMany(u => u.LikedComments)
+        .HasForeignKey(ul => ul.ApplicationUserId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserCommentLike>()
+        .HasOne(ul => ul.Comment)
+        .WithMany(c => c.LikedByUsers)
+        .HasForeignKey(ul => ul.CommentId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+
+        builder.Entity<UserCommentDislike>()
+        .HasKey(ud => new { ud.ApplicationUserId, ud.CommentId });
+
+        builder.Entity<UserCommentDislike>()
+        .HasOne(ud => ud.ApplicationUser)
+        .WithMany(u => u.DislikedComments)
+        .HasForeignKey(ud => ud.ApplicationUserId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserCommentDislike>()
+        .HasOne(ud => ud.Comment)
+        .WithMany(c => c.DislikedByUsers)
+        .HasForeignKey(ud => ud.CommentId)
+        .OnDelete(DeleteBehavior.Restrict);
+
     }
 
 }

@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Identity;
+using server.Data.Models;
+using server.Data.Models.Comments;
+using server.Services;
 namespace server.Data;
 
 public class ApplicationUser: IdentityUser{
@@ -13,4 +16,6 @@ public class ApplicationUser: IdentityUser{
 
     public string? FullName {get; set;}
 
+    public ICollection<UserCommentLike> LikedComments { get; set; }    = [];
+    public ICollection<UserCommentDislike> DislikedComments { get; set; } = [];
 }
