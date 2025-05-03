@@ -26,4 +26,6 @@ public class HomePageBlogData{
     public List<string> Tags {get; set;}
 
     public List<Comment> Comments {get; set;}
+
+    public List<string> LikedUsers {get; set;}
 }

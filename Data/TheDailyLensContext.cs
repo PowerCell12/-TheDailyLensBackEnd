@@ -20,6 +20,8 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
 
     public DbSet<UserCommentDislike> UserCommentDislikes {get; set;}
 
+    public DbSet<UserBlogLike> UserBlogLikes {get; set;}
+
 
     public TheDailyLensContext(DbContextOptions<TheDailyLensContext> options): base(options){
 
@@ -73,6 +75,21 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
         .HasForeignKey(ud => ud.CommentId)
         .OnDelete(DeleteBehavior.Restrict);
 
+        
+        builder.Entity<UserBlogLike>()
+        .HasKey(ul => new { ul.ApplicationUserId, ul.BlogId});
+
+        builder.Entity<UserBlogLike>()
+        .HasOne(ul => ul.ApplicationUser)
+        .WithMany(u => u.LikedBlogs)
+        .HasForeignKey(ul => ul.ApplicationUserId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<UserBlogLike>()
+        .HasOne(ul => ul.Blog)
+        .WithMany(u => u.LikedByUsers)
+        .HasForeignKey(ul => ul.BlogId)
+        .OnDelete(DeleteBehavior.Restrict);
     }
 
 }

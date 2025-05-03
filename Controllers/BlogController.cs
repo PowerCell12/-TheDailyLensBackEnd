@@ -41,7 +41,6 @@ public class BlogController: ControllerBase{
             Content = data.Content,
             AuthorId = user.Id,
             Author = user,
-            Likes = 0,
             CreatedAt = DateTime.Now,
             Thumbnail = data.Thumbnail
         };
@@ -76,6 +75,16 @@ public class BlogController: ControllerBase{
         return Ok("Blog deleted");
     }
 
+    [HttpPatch("{id}")]
+    public async Task<IActionResult> UpdateBlog([FromRoute] int id, [FromBody] UpdateBlogModel data){
+
+        bool isUpdated = await _blogService.UpdateBlog(id, data);
+
+        if (!isUpdated) return BadRequest("Blog not found");
+
+        return Ok("Blog updated");
+
+    }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetBlog([FromRoute] int id){
@@ -95,4 +104,17 @@ public class BlogController: ControllerBase{
 
         return Ok(comments);
     }
+
+    [HttpPost("{id}/like")]
+    public async Task<IActionResult> LikeBlog([FromRoute] int id, [FromBody] LikeBlog data){
+
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+
+        int likes = await _blogService.LikeBlog(id, user, data.Liked);
+
+        if (likes == -2) return BadRequest("Blog not found");
+
+        return Ok(likes);
+    }
+
 }

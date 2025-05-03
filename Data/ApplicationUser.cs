@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using server.Data.Models;
+using server.Data.Models.Blogs;
 using server.Data.Models.Comments;
 using server.Services;
 namespace server.Data;
@@ -18,4 +19,6 @@ public class ApplicationUser: IdentityUser{
 
     public ICollection<UserCommentLike> LikedComments { get; set; }    = [];
     public ICollection<UserCommentDislike> DislikedComments { get; set; } = [];
+
+    public ICollection<UserBlogLike> LikedBlogs { get; set; } = [];
 }

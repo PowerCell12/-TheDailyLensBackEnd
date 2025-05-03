@@ -47,6 +47,8 @@ public class UserController : ControllerBase
         .ThenInclude(c => c.Comment)
         .Include(u => u.DislikedComments)
         .ThenInclude(c => c.Comment)
+        .Include(u => u.LikedBlogs)
+        .ThenInclude(b => b.Blog)
         .FirstOrDefaultAsync(u => u.Id == user.Id);
 
         if (user == null)
@@ -65,7 +67,8 @@ public class UserController : ControllerBase
             fullName = user.FullName,
             id = user.Id,
             likedComments = user1.LikedComments.Select(x => x.Comment.Id).ToList(),
-            dislikedComments = user1.DislikedComments.Select(x => x.Comment.Id).ToList()
+            dislikedComments = user1.DislikedComments.Select(x => x.Comment.Id).ToList(),
+            likedBlogs = user.LikedBlogs.Select(x => x.Blog.Id).ToList(),
         });
 
     }

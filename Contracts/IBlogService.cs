@@ -16,5 +16,9 @@ public interface IBlogService{
     List<HomePageBlogData> GetBlogsByUserId(string tag);
 
     Task<bool> DeleteBlog(int id);
+
+    Task<bool> UpdateBlog(int id, UpdateBlogModel data);
+
+    Task<int> LikeBlog(int id, ApplicationUser user, bool isLiked);
 }
 

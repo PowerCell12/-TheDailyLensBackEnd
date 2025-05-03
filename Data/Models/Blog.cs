@@ -15,8 +15,6 @@ public class Blog{
 
     public string Content {get; set;}
 
-    public int Likes {get; set;}
-
     public DateTime CreatedAt {get; set;}
 
     [ForeignKey("Author")]
@@ -27,4 +25,9 @@ public class Blog{
     public List<Comment> Comments {get; set;} = [];
 
     public List<Tag> Tags {get; set;} = [];
+
+    public List<UserBlogLike> LikedByUsers {get; set;} = [];
+
+    public int Likes {get; set;} = 0;
+
 }
