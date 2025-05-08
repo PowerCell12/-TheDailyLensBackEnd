@@ -6,7 +6,10 @@ using server.Data;
 using server.Data.Models;
 using server.Data.Models.Blogs;
 using server.Data.Models.Comments;
+using server.Data.Models.Tags;
 using server.Models.BlogModels;
+using server.Extentions;
+using server.Models.UserModels;
 
 namespace server.Services;
 
@@ -14,8 +17,11 @@ public class BlogService: IBlogService{
 
     private TheDailyLensContext _context;
 
-    public BlogService(TheDailyLensContext context){
+    private ITagService _tagService;
+
+    public BlogService(TheDailyLensContext context, ITagService tagService){
         _context = context;
+        _tagService = tagService;
     }
 
 
@@ -27,6 +33,7 @@ public class BlogService: IBlogService{
             Thumbnail = x.Thumbnail,
             Content = x.Content,
             CreatedAt = x.CreatedAt,
+            Likes = x.Likes,
             AuthorId = x.AuthorId,
             UserImageUrl = x.Author.ImageUrl,
             UserName = x.Author.UserName,
@@ -129,6 +136,21 @@ public class BlogService: IBlogService{
         blog.Content = data.Content;
         blog.Thumbnail = data.Thumbnail;
 
+        var incomingTags = data.Tags;
+        var existingTags = _context.Tags.Where(t => t.Blogs.Any(b => b.Id == id)).ToList();
+
+        var tagsToAdd = incomingTags.Except(existingTags.Select(t => t.Name)).ToList();
+        var tagsToRemove = existingTags.Where(t => !incomingTags.Contains(t.Name)).ToList();
+
+        List<Tag> tags = await _tagService.CreateTags(tagsToAdd, id);
+        foreach (var tag in tags){
+            blog.Tags.Add(tag);
+        }
+
+        bool isDeleted = await _tagService.DeleteTags(tagsToRemove, blog.Title);
+
+        if (!isDeleted) return false;
+
         _context.Blogs.Update(blog);
         await _context.SaveChangesAsync();
 
@@ -165,6 +187,65 @@ public class BlogService: IBlogService{
         await _context.SaveChangesAsync();
         return blog.Likes;
 
+    }
+
+    public async Task<List<HomePageBlogData>> getLikedBlogsByUserId(string userName)
+    {
+
+        List<HomePageBlogData> blog = _context.Blogs.Where( x => x.LikedByUsers.Any(u => u.ApplicationUser.UserName == userName))
+        .Select(x => new HomePageBlogData {
+            Id = x.Id,
+            Title   = x.Title,
+            Thumbnail = x.Thumbnail,
+            Content = x.Content,
+            Likes = x.Likes,
+            CreatedAt = x.CreatedAt,
+            AuthorId = x.Author.Id,
+            UserImageUrl = x.Author.ImageUrl,
+            UserName = x.Author.UserName,
+            Tags = x.Tags.Select(t => t.Name).ToList()
+        }).ToList();
+
+        return blog;
+    }
+
+    public async Task<List<SearchGetBlogs>> SearchBlogs(string query){
+        var queryable = await _context.Blogs.Include(x => x.Tags).Include(x => x.Author).ToListAsync();
+
+        List<SearchGetBlogs> serverFiltered = queryable
+        .Where(x => x.Title.ToLower().Contains(query) || HelperFunctions.StripHTML(x.Content).ToLower().Contains(query) || x.Tags.Any(x => x.Name.ToLower().Contains(query)))
+        .Select(x => new SearchGetBlogs{
+            Id = x.Id,
+            Title = x.Title,
+            Thumbnail = x.Thumbnail,
+            Likes = x.Likes,
+            CreatedAt = x.CreatedAt,
+            AuthorId = x.Author.Id,
+            UserImageUrl = x.Author.ImageUrl,
+            UserName = x.Author.UserName,
+            Tags = x.Tags.Select(t => t.Name).ToList()
+        }).ToList();
+
+
+        return serverFiltered;
+    }
+
+
+
+
+    public async Task<List<SearchGetUsers>> SearchUsers(string query){
+       var queryable = await _context.Users.ToListAsync();
+
+       List<SearchGetUsers> users = queryable
+       .Where(x => x.UserName.ToLower().Contains(query) || x.Email.ToLower().Contains(query))
+       .Select(x => new SearchGetUsers{
+           Id = x.Id,
+           UserName = x.UserName,
+           Image = x.ImageUrl,
+           Email = x.Email
+       }).ToList();
+
+        return users;
     }
 
 }

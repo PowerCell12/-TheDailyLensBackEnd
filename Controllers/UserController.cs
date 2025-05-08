@@ -230,5 +230,18 @@ public class UserController : ControllerBase
         return Ok(blogs);
     }
 
+    [HttpGet("{userName}/getLikedBlogs")]
+    public async Task<IActionResult> GetLikedBlogs([FromRoute] string userName){
+        List<HomePageBlogData> blogs =  await _blogService.getLikedBlogsByUserId(userName);
+
+        if (blogs == null)
+        {
+            return NotFound("User not found");
+        }
+
+        return Ok(blogs);
+
+    }
+
 
 }

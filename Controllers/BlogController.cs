@@ -4,6 +4,8 @@ using server.Data;
 using server.Models.BlogModels;
 using server.Data.Models.Blogs;
 using server.Data.Models.Comments;
+using server.Data.Models.Tags;
+using server.Models.UserModels;
 
 namespace server.Controllers;
 
@@ -20,11 +22,14 @@ public class BlogController: ControllerBase{
 
     private IBlogService _blogService;
 
+    private ITagService _tagService;
 
-    public BlogController(TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService){
+
+    public BlogController(TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService, ITagService tagService){
         _context = context;
         _jwtTokenService = jwtTokenService;
         _blogService = blogService;
+        _tagService = tagService;
     }
 
     [HttpPost]
@@ -42,15 +47,27 @@ public class BlogController: ControllerBase{
             AuthorId = user.Id,
             Author = user,
             CreatedAt = DateTime.Now,
-            Thumbnail = data.Thumbnail
+            Thumbnail = data.Thumbnail,
         };
+
+
+        //  ASK IF IT WORKS BOTH THIS AND THE TAGSERVICE
 
 
         _context.Blogs.Add(blog);
         await _context.SaveChangesAsync();
 
-        return Ok();
+        Console.WriteLine("THE BLOG ID IS:"  + blog.Id);
 
+        List<Tag> tags = await _tagService.CreateTags(data.Tags, blog.Id);
+        foreach (var tag in tags){
+            blog.Tags.Add(tag);
+        }
+
+
+        await _context.SaveChangesAsync();
+
+        return Ok();
     } 
 
 
@@ -80,7 +97,7 @@ public class BlogController: ControllerBase{
 
         bool isUpdated = await _blogService.UpdateBlog(id, data);
 
-        if (!isUpdated) return BadRequest("Blog not found");
+        if (!isUpdated) return BadRequest("Blog can't be updated");
 
         return Ok("Blog updated");
 
@@ -115,6 +132,15 @@ public class BlogController: ControllerBase{
         if (likes == -2) return BadRequest("Blog not found");
 
         return Ok(likes);
+    }
+
+
+    [HttpGet("search/{query}")]
+    public async Task<IActionResult> Search([FromRoute] string query){        
+        List<SearchGetBlogs> blogs = await _blogService.SearchBlogs(query.ToLower());
+        List<SearchGetUsers> users = await _blogService.SearchUsers(query.ToLower());
+
+        return Ok(new {users, blogs});
     }
 
 }

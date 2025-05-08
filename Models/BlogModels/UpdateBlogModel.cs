@@ -7,5 +7,7 @@ public class UpdateBlogModel{
 
     public string Thumbnail {get; set;}
 
+    public List<string> Tags {get; set;}
+
 }
 

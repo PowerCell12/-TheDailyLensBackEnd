@@ -8,4 +8,6 @@ public class CreateBlogModel{
     
     public string Content {get; set;}
 
+    public List<string> Tags {get; set;}
+
 }
