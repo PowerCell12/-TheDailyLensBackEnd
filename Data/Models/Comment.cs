@@ -32,9 +32,6 @@ public class Comment{
     
     public Comment? ParentComment { get; set; }
 
-    public List<Comment> Replies { get; set; } = [];    
-
-
     public ICollection<UserCommentLike> LikedByUsers { get; set; }    = [];
     public ICollection<UserCommentDislike> DislikedByUsers { get; set; } = [];
 

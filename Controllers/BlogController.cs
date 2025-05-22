@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using server.Contracts;
 using server.Data;
 using server.Models.BlogModels;
-using server.Data.Models.Blogs;
 using server.Data.Models.Comments;
-using server.Data.Models.Tags;
 using server.Models.UserModels;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace server.Controllers;
 
@@ -15,21 +15,18 @@ public class BlogController: ControllerBase{
 
     private readonly List<string> validBlogTypes = ["new", "top"];
 
-
     private readonly TheDailyLensContext _context;
 
     private IJwtTokenService _jwtTokenService;
 
     private IBlogService _blogService;
 
-    private ITagService _tagService;
 
 
-    public BlogController(TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService, ITagService tagService){
+    public BlogController(TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService){
         _context = context;
         _jwtTokenService = jwtTokenService;
         _blogService = blogService;
-        _tagService = tagService;
     }
 
     [HttpPost]
@@ -39,40 +36,17 @@ public class BlogController: ControllerBase{
             return BadRequest("Validation failed");
         }
 
-        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+        bool isCreated = await _blogService.CreateBlog(data);
 
-        Blog blog = new(){
-            Title = data.Title,
-            Content = data.Content,
-            AuthorId = user.Id,
-            Author = user,
-            CreatedAt = DateTime.Now,
-            Thumbnail = data.Thumbnail,
-        };
-
-
-        //  ASK IF IT WORKS BOTH THIS AND THE TAGSERVICE
-
-
-        _context.Blogs.Add(blog);
-        await _context.SaveChangesAsync();
-
-        Console.WriteLine("THE BLOG ID IS:"  + blog.Id);
-
-        List<Tag> tags = await _tagService.CreateTags(data.Tags, blog.Id);
-        foreach (var tag in tags){
-            blog.Tags.Add(tag);
-        }
-
-
-        await _context.SaveChangesAsync();
+        if (!isCreated) return BadRequest("Can't create the blog, try again");
 
         return Ok();
-    } 
+    }
 
 
     [HttpGet("list")]
-    public async Task<IActionResult> GetBlogs([FromQuery] int amount, [FromQuery] string type){
+    public async Task<IActionResult> GetBlogs([FromQuery] int amount, [FromQuery] string type)
+    {
 
         if (amount < 1) amount = 10;
 
@@ -105,7 +79,7 @@ public class BlogController: ControllerBase{
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetBlog([FromRoute] int id){
-        HomePageBlogData blog = _blogService.GetBlogByTitle(id);
+        HomePageBlogData blog =  _blogService.GetBlogByTitle(id);
 
         if (blog == null) return BadRequest("Blog not found");
 
@@ -136,10 +110,15 @@ public class BlogController: ControllerBase{
 
 
     [HttpGet("search/{query}")]
-    public async Task<IActionResult> Search([FromRoute] string query){        
-        List<SearchGetBlogs> blogs = await _blogService.SearchBlogs(query.ToLower());
-        List<SearchGetUsers> users = await _blogService.SearchUsers(query.ToLower());
+    public async Task<IActionResult> Search([FromRoute] string query){    
+        List<SearchGetUsers> users  = []; 
 
+        if (query == "top" || query == "latest"){
+            users = await _blogService.SearchUsers(query.ToLower());
+        }
+ 
+        List<SearchGetBlogs> blogs = await _blogService.SearchBlogs(query.ToLower());
+        
         return Ok(new {users, blogs});
     }
 

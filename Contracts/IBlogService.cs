@@ -27,5 +27,7 @@ public interface IBlogService{
     Task<List<SearchGetBlogs>> SearchBlogs(string query);
 
     Task<List<SearchGetUsers>> SearchUsers(string query);
+
+    Task<bool> CreateBlog(CreateBlogModel data);
 }
 

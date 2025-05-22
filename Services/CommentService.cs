@@ -167,7 +167,6 @@ public class CommentService: ICommentService{
         };
 
         _context.Comments.Add(reply);
-        ParentComment.Replies.Add(reply);
         _context.Comments.Update(ParentComment);
         await _context.SaveChangesAsync();
 

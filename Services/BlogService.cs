@@ -19,9 +19,12 @@ public class BlogService: IBlogService{
 
     private ITagService _tagService;
 
-    public BlogService(TheDailyLensContext context, ITagService tagService){
+    private IJwtTokenService _jwtTokenService;
+
+    public BlogService(TheDailyLensContext context, ITagService tagService, IJwtTokenService jwtTokenService){
         _context = context;
         _tagService = tagService;
+        _jwtTokenService = jwtTokenService;
     }
 
 
@@ -58,7 +61,7 @@ public class BlogService: IBlogService{
 
     public HomePageBlogData GetBlogByTitle(int id){
 
-        HomePageBlogData blog = _context.Blogs.Where(x => x.Id == id).Select(x => new HomePageBlogData {
+        HomePageBlogData blog = _context.Blogs.Include(x => x.Author).Where(x => x.Id == id).Select(x => new HomePageBlogData {
             Id = x.Id,
             Title   = x.Title,
             Thumbnail = x.Thumbnail,
@@ -80,19 +83,25 @@ public class BlogService: IBlogService{
     public List<Comment> GetCommentsByBlogId(int id){
 
         var parentComments = _context.Comments
-        .Where(x => x.Blog.Id == id && x.ParentCommentId == null)
-        .Include(c => c.Replies)
-        .ThenInclude(r => r.Author)
+        .Where(x => x.Blog.Id == id)
+        .Include(c => c.Author)
+        .Include(c => c.ParentComment)
+        .Select(x => new Comment
+        {
+            Id = x.Id,
+            Title = x.Title,
+            Content = x.Content,
+            Likes = x.Likes,
+            Dislikes = x.Dislikes,
+            CreatedAt = x.CreatedAt,
+            AuthorId = x.AuthorId,
+            Author = x.Author,
+            ParentCommentId = x.ParentCommentId,
+            ParentComment = x.ParentComment
+        })
         .ToList();
 
-        // Then flatten them in memory (after the DB query)
-        List<Comment> allComments = parentComments
-        .SelectMany(c => new[] { c }.Concat(c.Replies))
-        .ToList();
-
-        Console.WriteLine(allComments.Count);
-
-        return allComments;
+        return parentComments;
     }
 
     public List<HomePageBlogData> GetBlogsByUserId(string userName){
@@ -212,20 +221,49 @@ public class BlogService: IBlogService{
     public async Task<List<SearchGetBlogs>> SearchBlogs(string query){
         var queryable = await _context.Blogs.Include(x => x.Tags).Include(x => x.Author).ToListAsync();
 
-        List<SearchGetBlogs> serverFiltered = queryable
-        .Where(x => x.Title.ToLower().Contains(query) || HelperFunctions.StripHTML(x.Content).ToLower().Contains(query) || x.Tags.Any(x => x.Name.ToLower().Contains(query)))
-        .Select(x => new SearchGetBlogs{
-            Id = x.Id,
-            Title = x.Title,
-            Thumbnail = x.Thumbnail,
-            Likes = x.Likes,
-            CreatedAt = x.CreatedAt,
-            AuthorId = x.Author.Id,
-            UserImageUrl = x.Author.ImageUrl,
-            UserName = x.Author.UserName,
-            Tags = x.Tags.Select(t => t.Name).ToList()
-        }).ToList();
+        List<SearchGetBlogs> serverFiltered;
 
+        if (query == "latest"){
+            serverFiltered = queryable.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Likes).Select(x => new SearchGetBlogs{
+                Id = x.Id,
+                Title = x.Title,
+                Thumbnail = x.Thumbnail,
+                Likes = x.Likes,
+                CreatedAt = x.CreatedAt,
+                AuthorId = x.Author.Id,
+                UserImageUrl = x.Author.ImageUrl,
+                UserName = x.Author.UserName,
+                Tags = x.Tags.Select(t => t.Name).ToList()
+            }).ToList();
+        }
+        else if (query == "top"){
+            serverFiltered = queryable.OrderByDescending(x => x.Likes).ThenByDescending(x => x.CreatedAt).Select(x => new SearchGetBlogs{
+                Id = x.Id,
+                Title = x.Title,
+                Thumbnail = x.Thumbnail,
+                Likes = x.Likes,
+                CreatedAt = x.CreatedAt,
+                AuthorId = x.Author.Id,
+                UserImageUrl = x.Author.ImageUrl,
+                UserName = x.Author.UserName,
+                Tags = x.Tags.Select(t => t.Name).ToList()
+            }).ToList();
+        }
+        else{
+            serverFiltered = queryable
+            .Where(x => x.Title.ToLower().Contains(query) || HelperFunctions.StripHTML(x.Content).ToLower().Contains(query) || x.Tags.Any(x => x.Name.ToLower().Contains(query)))
+            .Select(x => new SearchGetBlogs{
+                Id = x.Id,
+                Title = x.Title,
+                Thumbnail = x.Thumbnail,
+                Likes = x.Likes,
+                CreatedAt = x.CreatedAt,
+                AuthorId = x.Author.Id,
+                UserImageUrl = x.Author.ImageUrl,
+                UserName = x.Author.UserName,
+                Tags = x.Tags.Select(t => t.Name).ToList()
+            }).ToList();
+        }
 
         return serverFiltered;
     }
@@ -246,6 +284,34 @@ public class BlogService: IBlogService{
        }).ToList();
 
         return users;
+    }
+
+
+    public async Task<bool> CreateBlog(CreateBlogModel data){
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+
+        Blog blog = new(){
+            Title = data.Title,
+            Content = data.Content,
+            AuthorId = user.Id,
+            Author = user,
+            CreatedAt = DateTime.Now,
+            Thumbnail = data.Thumbnail,
+        };
+
+
+        _context.Blogs.Add(blog);
+        await _context.SaveChangesAsync();
+
+
+        List<Tag> tags = await _tagService.CreateTags(data.Tags, blog.Id);
+        foreach (var tag in tags){
+            blog.Tags.Add(tag);
+        }
+
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 
 }

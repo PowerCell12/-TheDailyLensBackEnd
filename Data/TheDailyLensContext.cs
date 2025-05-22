@@ -33,15 +33,7 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
         builder.Entity<Comment>().HasOne(c => c.Author)
         .WithMany()
         .HasForeignKey(c => c.AuthorId)
-        .OnDelete(DeleteBehavior.Restrict);
-
-    
-        builder.Entity<Comment>()
-        .HasOne(c => c.ParentComment)
-        .WithMany(c => c.Replies)
-        .HasForeignKey(c => c.ParentCommentId)
-        .OnDelete(DeleteBehavior.Restrict); 
-
+        .OnDelete(DeleteBehavior.ClientCascade);
 
 
         builder.Entity<UserCommentLike>()
@@ -51,13 +43,13 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
         .HasOne(ul => ul.ApplicationUser)
         .WithMany(u => u.LikedComments)
         .HasForeignKey(ul => ul.ApplicationUserId)
-        .OnDelete(DeleteBehavior.Restrict);
+        .OnDelete(DeleteBehavior.ClientCascade);
 
         builder.Entity<UserCommentLike>()
         .HasOne(ul => ul.Comment)
         .WithMany(c => c.LikedByUsers)
         .HasForeignKey(ul => ul.CommentId)
-        .OnDelete(DeleteBehavior.Restrict);
+        .OnDelete(DeleteBehavior.Cascade);
 
 
         builder.Entity<UserCommentDislike>()
@@ -67,13 +59,16 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
         .HasOne(ud => ud.ApplicationUser)
         .WithMany(u => u.DislikedComments)
         .HasForeignKey(ud => ud.ApplicationUserId)
-        .OnDelete(DeleteBehavior.Restrict);
+        .OnDelete(DeleteBehavior.ClientCascade);
 
         builder.Entity<UserCommentDislike>()
         .HasOne(ud => ud.Comment)
         .WithMany(c => c.DislikedByUsers)
         .HasForeignKey(ud => ud.CommentId)
-        .OnDelete(DeleteBehavior.Restrict);
+        .OnDelete(DeleteBehavior.Cascade);
+
+        
+
 
         
         builder.Entity<UserBlogLike>()
@@ -83,13 +78,13 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
         .HasOne(ul => ul.ApplicationUser)
         .WithMany(u => u.LikedBlogs)
         .HasForeignKey(ul => ul.ApplicationUserId)
-        .OnDelete(DeleteBehavior.Restrict);
+        .OnDelete(DeleteBehavior.ClientCascade);
 
         builder.Entity<UserBlogLike>()
         .HasOne(ul => ul.Blog)
         .WithMany(u => u.LikedByUsers)
         .HasForeignKey(ul => ul.BlogId)
-        .OnDelete(DeleteBehavior.Restrict);
+        .OnDelete(DeleteBehavior.Cascade);
     }
 
 }

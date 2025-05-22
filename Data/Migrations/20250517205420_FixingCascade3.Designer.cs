@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using server.Data;
 
@@ -11,9 +12,11 @@ using server.Data;
 namespace server.Data.Migrations
 {
     [DbContext(typeof(TheDailyLensContext))]
-    partial class TheDailyLensContextModelSnapshot : ModelSnapshot
+    [Migration("20250517205420_FixingCascade3")]
+    partial class FixingCascade3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -485,7 +488,7 @@ namespace server.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("server.Data.Models.Blogs.Blog", "Blog")
-                        .WithMany()
+                        .WithMany("Comments")
                         .HasForeignKey("BlogId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -569,6 +572,8 @@ namespace server.Data.Migrations
 
             modelBuilder.Entity("server.Data.Models.Blogs.Blog", b =>
                 {
+                    b.Navigation("Comments");
+
                     b.Navigation("LikedByUsers");
                 });
 

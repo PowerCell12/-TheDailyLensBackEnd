@@ -1,11 +1,8 @@
 namespace server.Controllers;
 
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using server.Contracts;
 using server.Data;
 using server.Extentions;
@@ -67,7 +64,7 @@ public class AuthenticationController: ControllerBase
 
         if (ModelState.IsValid){
             bool createdUser = await _authService.CreateUser(model);
-            Console.Write(createdUser);
+
             if (createdUser){
                 var stringToken = await _jwtTokenService.GenerateJwtToken(model.Email);
                 return Ok(stringToken);

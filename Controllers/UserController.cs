@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using server.Contracts;
 using server.Data;
 using server.Extentions;
@@ -10,7 +9,6 @@ using server.Models.UserModels;
 
 [ApiController]
 [Route("user")]
-// [Authorize] good to do
 public class UserController : ControllerBase
 {
 
@@ -22,14 +20,16 @@ public class UserController : ControllerBase
 
     private IBlogService _blogService;
 
-    private readonly string[] notProfilePicture = ["CreateBlog", "ShowComment"];
+    private IUserService _userService;
 
-    public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService)
+
+    public UserController(UserManager<ApplicationUser> userManager, TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService, IUserService userService)
     {
         _blogService = blogService;
         _jwtTokenService = jwtTokenService;
         _context = context;
         _userManager = userManager;
+        _userService = userService;
     }
     
 
@@ -37,10 +37,7 @@ public class UserController : ControllerBase
     [HttpGet("info")]
     public async Task<IActionResult> GetUserInfo()
     {
-
-
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
-
 
         ApplicationUser user1 = await _context.Users
         .Include(u => u.LikedComments)
@@ -73,6 +70,46 @@ public class UserController : ControllerBase
 
     }
 
+    [HttpGet("title/{username}")]
+    public async Task<IActionResult> GetUserInfoByTitle([FromRoute] string username){
+        ApplicationUser user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
+
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
+
+
+        ApplicationUser user1 = await _context.Users
+        .Include(u => u.LikedComments)
+        .ThenInclude(c => c.Comment)
+        .Include(u => u.DislikedComments)
+        .ThenInclude(c => c.Comment)
+        .Include(u => u.LikedBlogs)
+        .ThenInclude(b => b.Blog)
+        .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+        if (user == null)
+        {
+            return NotFound("User not found");
+        }
+
+        return Ok(new {
+            name = user.UserName,
+            email = user.Email,
+            accountType = user.AccountType,
+            imageUrl = user.ImageUrl,
+            bio = user.Bio,
+            country = user.Country,
+            fullName = user.FullName,
+            id = user.Id,
+            likedComments = user1.LikedComments.Select(x => x.Comment.Id).ToList(),
+            dislikedComments = user1.DislikedComments.Select(x => x.Comment.Id).ToList(),
+            likedBlogs = user.LikedBlogs.Select(x => x.Blog.Id).ToList(),
+        });
+    }
+
+
     [HttpGet("{authorId}")]
     public async Task<IActionResult> GetUserInfo([FromRoute] string authorId){
 
@@ -90,53 +127,13 @@ public class UserController : ControllerBase
     [HttpPost("uploadImage")]   
     public async Task<IActionResult> UploadImage([FromForm] IFormFile file,[FromForm] string frontEndUrl)
     {
-        string path;
-        string path1;
+        string path1 = await _userService.UploadImage(file, frontEndUrl);
 
-        if (file.Length > 5_242_880)
-        {
-            return BadRequest("File is too large");
+        if (path1 == "File is too large"){
+            return BadRequest(path1);
         }
-
-
-        switch(frontEndUrl){
-            case "CreateBlog":
-                path = "wwwroot/images/BlogsImages/" + file.FileName;
-                path1 = "images/BlogsImages/" + file.FileName;
-                break;
-            case "ShowComment":
-                path = "wwwroot/images/CommentImages/" + file.FileName;
-                path1 = "images/CommentImages/" + file.FileName;
-                break;
-            default:
-                string uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
-                path = "wwwroot/images/" + uniqueFileName;
-                path1 = "images/" + uniqueFileName;
-                break;
-        }
-
-        using (var stream = new FileStream(path, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-
-        if (!notProfilePicture.Contains(frontEndUrl)){
-            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
-
-            if (user == null)
-            {
-                return NotFound("User not found");
-            }
-
-            if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
-                if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
-            }
-
-
-            user.ImageUrl = path1;
-            _context.Update(user);
-            await _context.SaveChangesAsync();
+        else if (path1 == "Not Found"){
+            return NotFound(path1);
         }
 
         return Ok(new { imageUrl = path1});
@@ -152,14 +149,11 @@ public class UserController : ControllerBase
             return NotFound("User not found");
         }
 
-        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
-            if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
+        bool result = await _userService.ResetProfileImage(user);
+
+        if (!result){
+            return BadRequest("There was an error, please try again");
         }
-
-
-        user.ImageUrl = "/PersonDefault.png";
-        _context.Update(user);
-        await _context.SaveChangesAsync();
 
         return Ok();
     }
@@ -178,13 +172,11 @@ public class UserController : ControllerBase
                 return NotFound("User not found");
             }
 
-            user.UserName = model.UserName;
-            user.Email = model.Email;
-            user.FullName = model.FullName;
-            user.Country = model.Country;
-            user.Bio = model.Bio;
-            _context.Update(user);
-            await _context.SaveChangesAsync();
+            bool result = await _userService.EditProfile(model, user);
+
+            if (!result){
+                return BadRequest("There was an error, please try again");
+            }
 
             return Ok(new {
                 username = user.UserName,
@@ -211,12 +203,14 @@ public class UserController : ControllerBase
             return NotFound("User not found");
         }
 
+        await _context.Entry(user).Collection(x => x.LikedBlogs).LoadAsync();
 
-        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
-            if (System.IO.File.Exists("wwwroot/" + user.ImageUrl)) System.IO.File.Delete("wwwroot/" + user.ImageUrl);
+
+        bool result = await _userService.DeleteProfile(user);
+
+        if (!result){
+            return BadRequest("There was an error, please try again");
         }
-        
-        await _userManager.DeleteAsync(user);
 
         return Ok();
 
