@@ -15,7 +15,7 @@
 
 ## 1. Project Overview
 
-**TheDailyLens** is a news website built with ASP.NET (C#) on the server side and Microsoft SQL Server as the database. This documentation covers all aspects of the backend implementation: architecture, data model, API endpoints, setup, deployment, testing, security, and maintenance.
+**TheDailyLens** is a news website built with ASP.NET (C#) on the server side and Microsoft SQL Server as the database. This documentation covers all aspects of the backend implementation: architecture, data model, setup, and security.
 
 ---
 
