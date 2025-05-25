@@ -4,12 +4,12 @@
 
 **Contents**
 
-1. Project Overview
-2. Technologies & Tools
-3. Architecture
-4. Setup & Installation
-5. Authentication & Authorization
-6. Contribution Guidelines
+1. [Project Overview](#1-project-overview)
+2. [Technologies & Tools](#2-technologies--tools)
+3. [Architecture](#3-architecture)
+4. [Setup & Installation](#4-setup--installation)
+5. [Authentication & Authorization](#5-authentication--authorization)
+6. [Contribution Guidelines](#6-contribution-guidelines)
 
 ---
 
@@ -97,7 +97,3 @@ Run EF Core migrations:
 2. Submit a pull request referencing an issue.
 
 ---
-
-
-
-
