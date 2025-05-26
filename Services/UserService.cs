@@ -4,8 +4,6 @@ using server.Contracts;
 using server.Data;
 using server.Models.BlogModels;
 using server.Models.UserModels;
-using System.Drawing;
-using System.IO;
 
 namespace server.Services;
 
@@ -137,7 +135,7 @@ public class UserService : IUserService
 
         return true;
     }
-    
+
 
     public async Task<List<PostedComments>> GetPostedComments(string id)
     {
@@ -156,5 +154,36 @@ public class UserService : IUserService
         }).ToListAsync();
     }
 
-    
+    public async Task<List<ApplicationUser>> GetAllUsers()
+    {
+        return await _context.Users
+            .Include(u => u.LikedComments)
+            .ThenInclude(c => c.Comment)
+            .Include(u => u.DislikedComments)
+            .ThenInclude(c => c.Comment)
+            .Include(u => u.LikedBlogs)
+            .ThenInclude(b => b.Blog).ToListAsync();
+    }
+
+    public async Task<bool> UpdateAccountTypeForUsers(List<ApplicationUserModel> users)
+    {
+        foreach (var user in users)
+        {
+            ApplicationUser userWithId = await _context.Users.FirstOrDefaultAsync(x => x.Id == user.Id);
+
+            if (userWithId == null)
+            {
+                continue; // Skip if user not found
+            }
+
+            if (userWithId.AccountType != (AccountType)user.AccountType)
+            {
+                userWithId.AccountType = (AccountType)user.AccountType;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
 }

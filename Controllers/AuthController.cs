@@ -1,6 +1,7 @@
 namespace server.Controllers;
 
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using server.Contracts;

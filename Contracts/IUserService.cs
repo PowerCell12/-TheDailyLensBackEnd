@@ -14,6 +14,10 @@ public interface IUserService
     Task<bool> EditProfile(EditProfiileModel model, ApplicationUser user);
 
     Task<bool> DeleteProfile(ApplicationUser user);
-    
+
     Task<List<PostedComments>> GetPostedComments(string id);
+
+    Task<List<ApplicationUser>> GetAllUsers();
+    
+    Task<bool> UpdateAccountTypeForUsers(List<ApplicationUserModel> users);
 }

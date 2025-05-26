@@ -57,7 +57,7 @@ public class UserController : ControllerBase
         {
             name = user.UserName,
             email = user.Email,
-            accountType = user.AccountType,
+            accountType = (int)user.AccountType,
             imageUrl = user.ImageUrl,
             bio = user.Bio,
             country = user.Country,
@@ -99,7 +99,7 @@ public class UserController : ControllerBase
         {
             name = user.UserName,
             email = user.Email,
-            accountType = user.AccountType,
+            accountType = (int)user.AccountType,
             imageUrl = user.ImageUrl,
             bio = user.Bio,
             country = user.Country,
@@ -268,6 +268,29 @@ public class UserController : ControllerBase
         }
 
         return Ok(comments);
+    }
+
+
+    [HttpGet("getAllUsers")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        List<ApplicationUser> users = await _userService.GetAllUsers();
+
+        return Ok(users);
+    }
+
+
+    [HttpPost("updateAccountTypeForUsers")]
+    public async Task<IActionResult> UpdateAccountTypeForUsers([FromBody] List<ApplicationUserModel> users)
+    {
+        bool result = await _userService.UpdateAccountTypeForUsers(users);
+
+        if (result == false)
+        {
+            return BadRequest("There was an error, please try again");
+        }
+
+        return Ok();
     }
 
 

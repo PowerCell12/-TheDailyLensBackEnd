@@ -95,8 +95,9 @@ public class SMTPService : ISMTPService
 
             return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine($"Error sending email: {ex.Message}");
             return false;
         }
     }
