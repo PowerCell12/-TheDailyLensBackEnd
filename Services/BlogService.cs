@@ -113,6 +113,7 @@ public class BlogService: IBlogService{
             Title   = x.Title,
             Thumbnail = x.Thumbnail,
             Content = x.Content,
+            Likes = x.Likes,
             CreatedAt = x.CreatedAt,
             AuthorId = x.AuthorId,
             UserImageUrl = x.Author.ImageUrl,
@@ -125,10 +126,14 @@ public class BlogService: IBlogService{
     }
 
     public async Task<bool> DeleteBlog(int id){
+        var comments = _context.Comments.Where(x => x.BlogId == id).ToList();
 
         Blog blog = await _context.Blogs.FirstOrDefaultAsync(x => x.Id == id);
 
         if (blog == null) return false;
+
+        _context.Comments.RemoveRange(comments);
+        await _context.SaveChangesAsync();
 
         _context.Blogs.Remove(blog);
         await _context.SaveChangesAsync();
@@ -287,7 +292,7 @@ public class BlogService: IBlogService{
     }
 
 
-    public async Task<bool> CreateBlog(CreateBlogModel data){
+    public async Task<int> CreateBlog(CreateBlogModel data){
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
         Blog blog = new(){
@@ -311,7 +316,7 @@ public class BlogService: IBlogService{
 
 
         await _context.SaveChangesAsync();
-        return true;
+        return blog.Id;
     }
 
 }

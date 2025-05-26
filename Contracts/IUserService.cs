@@ -1,9 +1,11 @@
 using server.Data;
+using server.Models.BlogModels;
 using server.Models.UserModels;
 
 namespace server.Contracts;
 
-public interface IUserService{
+public interface IUserService
+{
 
     Task<string> UploadImage(IFormFile file, string frontEndUrl);
 
@@ -12,5 +14,6 @@ public interface IUserService{
     Task<bool> EditProfile(EditProfiileModel model, ApplicationUser user);
 
     Task<bool> DeleteProfile(ApplicationUser user);
-
+    
+    Task<List<PostedComments>> GetPostedComments(string id);
 }

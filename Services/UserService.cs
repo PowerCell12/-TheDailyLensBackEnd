@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using server.Contracts;
 using server.Data;
+using server.Models.BlogModels;
 using server.Models.UserModels;
 using System.Drawing;
 using System.IO;
 
 namespace server.Services;
 
-public class UserService: IUserService{
+public class UserService : IUserService
+{
 
     private readonly TheDailyLensContext _context;
 
@@ -18,14 +21,16 @@ public class UserService: IUserService{
     private readonly string[] notProfilePicture = ["CreateBlog", "ShowComment"];
 
 
-    public UserService(TheDailyLensContext context, IJwtTokenService jwtTokenService, UserManager<ApplicationUser> userManager){
+    public UserService(TheDailyLensContext context, IJwtTokenService jwtTokenService, UserManager<ApplicationUser> userManager)
+    {
         _context = context;
         _jwtTokenService = jwtTokenService;
         _userManager = userManager;
     }
 
 
-    public async Task<string> UploadImage(IFormFile file, string frontEndUrl){
+    public async Task<string> UploadImage(IFormFile file, string frontEndUrl)
+    {
         string path;
         string path1;
 
@@ -35,7 +40,8 @@ public class UserService: IUserService{
         }
 
 
-        switch(frontEndUrl){
+        switch (frontEndUrl)
+        {
             case "CreateBlog":
                 path = "wwwroot/images/BlogsImages/" + file.FileName;
                 path1 = "images/BlogsImages/" + file.FileName;
@@ -57,7 +63,8 @@ public class UserService: IUserService{
         }
 
 
-        if (!notProfilePicture.Contains(frontEndUrl)){
+        if (!notProfilePicture.Contains(frontEndUrl))
+        {
             ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
             if (user == null)
@@ -65,7 +72,8 @@ public class UserService: IUserService{
                 return "Not Found";
             }
 
-            if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
+            if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png"))
+            {
                 if (File.Exists("wwwroot/" + user.ImageUrl)) File.Delete("wwwroot/" + user.ImageUrl);
             }
 
@@ -74,13 +82,15 @@ public class UserService: IUserService{
             _context.Update(user);
             await _context.SaveChangesAsync();
         }
-        
+
         return path1;
     }
 
 
-    public async Task<bool> ResetProfileImage(ApplicationUser user){
-        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
+    public async Task<bool> ResetProfileImage(ApplicationUser user)
+    {
+        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png"))
+        {
             if (File.Exists("wwwroot/" + user.ImageUrl)) File.Delete("wwwroot/" + user.ImageUrl);
         }
 
@@ -88,33 +98,62 @@ public class UserService: IUserService{
         user.ImageUrl = "/PersonDefault.png";
         _context.Update(user);
         await _context.SaveChangesAsync();
-    
+
         return true;
     }
 
 
-    public async Task<bool> EditProfile(EditProfiileModel model, ApplicationUser user){
-            user.UserName = model.UserName;
-            user.Email = model.Email;
-            user.FullName = model.FullName;
-            user.Country = model.Country;
-            user.Bio = model.Bio;
-            _context.Update(user);
-            await _context.SaveChangesAsync();
+    public async Task<bool> EditProfile(EditProfiileModel model, ApplicationUser user)
+    {
+        user.UserName = model.UserName;
+        user.Email = model.Email;
+        user.FullName = model.FullName;
+        user.Country = model.Country;
+        user.Bio = model.Bio;
+        _context.Update(user);
+        await _context.SaveChangesAsync();
 
-            return true;
+        return true;
     }
 
 
-    public async Task<bool> DeleteProfile(ApplicationUser user){
-        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png")){
+    public async Task<bool> DeleteProfile(ApplicationUser user)
+    {
+        var Comments = _context.Comments.Where(x => x.AuthorId == user.Id).ToList();
+        var Blogs = _context.Blogs.Where(x => x.AuthorId == user.Id).ToList();
+
+
+        if (!string.IsNullOrEmpty(user.ImageUrl) && !user.ImageUrl.EndsWith("/PersonDefault.png"))
+        {
             if (File.Exists("wwwroot/" + user.ImageUrl)) File.Delete("wwwroot/" + user.ImageUrl);
         }
-        
+
+        _context.Comments.RemoveRange(Comments);
+        _context.Blogs.RemoveRange(Blogs);
+
+        await _context.SaveChangesAsync();
+
         await _userManager.DeleteAsync(user);
-    
-    
+
         return true;
+    }
+    
+
+    public async Task<List<PostedComments>> GetPostedComments(string id)
+    {
+        return await _context.Comments.Where(x => x.AuthorId == id).Select(x => new PostedComments
+        {
+            Id = x.Id,
+            Title = x.Title,
+            Content = x.Content,
+            CreatedAt = x.CreatedAt,
+            Likes = x.Likes,
+            Dislikes = x.Dislikes,
+            IsLiked = x.LikedByUsers.Any(y => y.ApplicationUserId == id && y.CommentId == x.Id),
+            IsDisliked = x.DislikedByUsers.Any(y => y.ApplicationUserId == id && y.CommentId == x.Id),
+            BlogId = x.BlogId,
+            Show = false,
+        }).ToListAsync();
     }
 
     

@@ -31,7 +31,7 @@ public class UserController : ControllerBase
         _userManager = userManager;
         _userService = userService;
     }
-    
+
 
 
     [HttpGet("info")]
@@ -71,7 +71,8 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("title/{username}")]
-    public async Task<IActionResult> GetUserInfoByTitle([FromRoute] string username){
+    public async Task<IActionResult> GetUserInfoByTitle([FromRoute] string username)
+    {
         ApplicationUser user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
 
         if (user == null)
@@ -94,7 +95,8 @@ public class UserController : ControllerBase
             return NotFound("User not found");
         }
 
-        return Ok(new {
+        return Ok(new
+        {
             name = user.UserName,
             email = user.Email,
             accountType = user.AccountType,
@@ -111,7 +113,8 @@ public class UserController : ControllerBase
 
 
     [HttpGet("{authorId}")]
-    public async Task<IActionResult> GetUserInfo([FromRoute] string authorId){
+    public async Task<IActionResult> GetUserInfo([FromRoute] string authorId)
+    {
 
         ApplicationUser user = await _userManager.FindByIdAsync(authorId);
 
@@ -124,34 +127,39 @@ public class UserController : ControllerBase
     }
 
 
-    [HttpPost("uploadImage")]   
-    public async Task<IActionResult> UploadImage([FromForm] IFormFile file,[FromForm] string frontEndUrl)
+    [HttpPost("uploadImage")]
+    public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string frontEndUrl)
     {
         string path1 = await _userService.UploadImage(file, frontEndUrl);
 
-        if (path1 == "File is too large"){
+        if (path1 == "File is too large")
+        {
             return BadRequest(path1);
         }
-        else if (path1 == "Not Found"){
+        else if (path1 == "Not Found")
+        {
             return NotFound(path1);
         }
 
-        return Ok(new { imageUrl = path1});
+        return Ok(new { imageUrl = path1 });
     }
-    
+
 
 
     [HttpPost("resetProfileImage")]
-    public async Task<IActionResult> ResetProfileImage(){
+    public async Task<IActionResult> ResetProfileImage()
+    {
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
-        if (user == null){
+        if (user == null)
+        {
             return NotFound("User not found");
         }
 
         bool result = await _userService.ResetProfileImage(user);
 
-        if (!result){
+        if (!result)
+        {
             return BadRequest("There was an error, please try again");
         }
 
@@ -161,9 +169,11 @@ public class UserController : ControllerBase
 
 
     [HttpPost("editProfile")]
-    public async Task<IActionResult> EditProfile([FromBody] EditProfiileModel model){
+    public async Task<IActionResult> EditProfile([FromBody] EditProfiileModel model)
+    {
 
-        if (ModelState.IsValid){
+        if (ModelState.IsValid)
+        {
 
             ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
@@ -174,11 +184,13 @@ public class UserController : ControllerBase
 
             bool result = await _userService.EditProfile(model, user);
 
-            if (!result){
+            if (!result)
+            {
                 return BadRequest("There was an error, please try again");
             }
 
-            return Ok(new {
+            return Ok(new
+            {
                 username = user.UserName,
                 email = user.Email,
                 bio = user.Bio,
@@ -186,15 +198,17 @@ public class UserController : ControllerBase
                 fullName = user.FullName
             });
         }
-        else{
-            return BadRequest(new { Message = "There was an error, please try again", Errors = ModelState.GetErrors()});
+        else
+        {
+            return BadRequest(new { Message = "There was an error, please try again", Errors = ModelState.GetErrors() });
         }
 
 
     }
 
     [HttpDelete("deleteProfile")]
-    public async Task<IActionResult> DeleteProfile(){
+    public async Task<IActionResult> DeleteProfile()
+    {
 
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
@@ -206,9 +220,13 @@ public class UserController : ControllerBase
         await _context.Entry(user).Collection(x => x.LikedBlogs).LoadAsync();
 
 
+
+
+
         bool result = await _userService.DeleteProfile(user);
 
-        if (!result){
+        if (!result)
+        {
             return BadRequest("There was an error, please try again");
         }
 
@@ -218,15 +236,17 @@ public class UserController : ControllerBase
 
 
     [HttpGet("{userName}/getBlogsByUser")]
-    public async Task<IActionResult> GetBlogsByUser([FromRoute] string userName){
+    public async Task<IActionResult> GetBlogsByUser([FromRoute] string userName)
+    {
         List<HomePageBlogData> blogs = _blogService.GetBlogsByUserId(userName);
 
         return Ok(blogs);
     }
 
     [HttpGet("{userName}/getLikedBlogs")]
-    public async Task<IActionResult> GetLikedBlogs([FromRoute] string userName){
-        List<HomePageBlogData> blogs =  await _blogService.getLikedBlogsByUserId(userName);
+    public async Task<IActionResult> GetLikedBlogs([FromRoute] string userName)
+    {
+        List<HomePageBlogData> blogs = await _blogService.getLikedBlogsByUserId(userName);
 
         if (blogs == null)
         {
@@ -235,6 +255,19 @@ public class UserController : ControllerBase
 
         return Ok(blogs);
 
+    }
+
+    [HttpGet("postedComments/{id}")]
+    public async Task<IActionResult> GetPostedComments([FromRoute] string id)
+    {
+        List<PostedComments> comments = await _userService.GetPostedComments(id);
+
+        if (comments == null)
+        {
+            return NotFound("User not found");
+        }
+
+        return Ok(comments);
     }
 
 

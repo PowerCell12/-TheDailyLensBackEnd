@@ -4,6 +4,7 @@ using server.Data.Models;
 using server.Data.Models.Blogs;
 using server.Data.Models.Comments;
 using server.Data.Models.Tags;
+using server.Models.SMTPModels;
 
 namespace server.Data;
 
@@ -22,8 +23,13 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
 
     public DbSet<UserBlogLike> UserBlogLikes {get; set;}
 
+    public DbSet<Subscribe> Subscribes {get; set;}
 
-    public TheDailyLensContext(DbContextOptions<TheDailyLensContext> options): base(options){
+
+
+
+    public TheDailyLensContext(DbContextOptions<TheDailyLensContext> options) : base(options)
+    {
 
     } 
 
@@ -34,6 +40,7 @@ public class TheDailyLensContext: IdentityDbContext<ApplicationUser>{
         .WithMany()
         .HasForeignKey(c => c.AuthorId)
         .OnDelete(DeleteBehavior.ClientCascade);
+
 
 
         builder.Entity<UserCommentLike>()

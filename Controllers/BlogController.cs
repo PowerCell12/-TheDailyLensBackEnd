@@ -6,12 +6,14 @@ using server.Data.Models.Comments;
 using server.Models.UserModels;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Newtonsoft.Json.Schema;
 
 namespace server.Controllers;
 
 [ApiController]
 [Route("blog")]
-public class BlogController: ControllerBase{
+public class BlogController : ControllerBase
+{
 
     private readonly List<string> validBlogTypes = ["new", "top"];
 
@@ -23,24 +25,27 @@ public class BlogController: ControllerBase{
 
 
 
-    public BlogController(TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService){
+    public BlogController(TheDailyLensContext context, IJwtTokenService jwtTokenService, IBlogService blogService)
+    {
         _context = context;
         _jwtTokenService = jwtTokenService;
         _blogService = blogService;
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateBlog([FromBody] CreateBlogModel data){
+    public async Task<IActionResult> CreateBlog([FromBody] CreateBlogModel data)
+    {
 
-        if (!ModelState.IsValid){
+        if (!ModelState.IsValid)
+        {
             return BadRequest("Validation failed");
         }
 
-        bool isCreated = await _blogService.CreateBlog(data);
+        int blogId = await _blogService.CreateBlog(data);
 
-        if (!isCreated) return BadRequest("Can't create the blog, try again");
+        if (blogId == -1 || blogId == null) return BadRequest("Blog can't be created");
 
-        return Ok();
+        return Ok(blogId);
     }
 
 
@@ -58,7 +63,8 @@ public class BlogController: ControllerBase{
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteBlog([FromRoute] int id){
+    public async Task<IActionResult> DeleteBlog([FromRoute] int id)
+    {
         bool isDeleted = await _blogService.DeleteBlog(id);
 
         if (!isDeleted) return BadRequest("Blog not found");
@@ -67,7 +73,8 @@ public class BlogController: ControllerBase{
     }
 
     [HttpPatch("{id}")]
-    public async Task<IActionResult> UpdateBlog([FromRoute] int id, [FromBody] UpdateBlogModel data){
+    public async Task<IActionResult> UpdateBlog([FromRoute] int id, [FromBody] UpdateBlogModel data)
+    {
 
         bool isUpdated = await _blogService.UpdateBlog(id, data);
 
@@ -78,8 +85,9 @@ public class BlogController: ControllerBase{
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetBlog([FromRoute] int id){
-        HomePageBlogData blog =  _blogService.GetBlogByTitle(id);
+    public async Task<IActionResult> GetBlog([FromRoute] int id)
+    {
+        HomePageBlogData blog = _blogService.GetBlogByTitle(id);
 
         if (blog == null) return BadRequest("Blog not found");
 
@@ -88,16 +96,18 @@ public class BlogController: ControllerBase{
 
 
     [HttpGet("{id}/comments")]
-    public async Task<IActionResult> GetBlogComments([FromRoute] int id){
+    public async Task<IActionResult> GetBlogComments([FromRoute] int id)
+    {
         List<Comment> comments = _blogService.GetCommentsByBlogId(id).OrderByDescending(x => x.CreatedAt).ToList();
-        
+
         if (comments == null) return BadRequest("Blog not found");
 
         return Ok(comments);
     }
 
     [HttpPost("{id}/like")]
-    public async Task<IActionResult> LikeBlog([FromRoute] int id, [FromBody] LikeBlog data){
+    public async Task<IActionResult> LikeBlog([FromRoute] int id, [FromBody] LikeBlog data)
+    {
 
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
@@ -110,16 +120,26 @@ public class BlogController: ControllerBase{
 
 
     [HttpGet("search/{query}")]
-    public async Task<IActionResult> Search([FromRoute] string query){    
-        List<SearchGetUsers> users  = []; 
+    public async Task<IActionResult> Search([FromRoute] string query)
+    {
+        List<SearchGetUsers> users = [];
 
-        if (query == "top" || query == "latest"){
+        if (query == "top" || query == "latest")
+        {
             users = await _blogService.SearchUsers(query.ToLower());
         }
- 
+
         List<SearchGetBlogs> blogs = await _blogService.SearchBlogs(query.ToLower());
-        
-        return Ok(new {users, blogs});
+
+        return Ok(new { users, blogs });
     }
+
+
+    [HttpGet("tags")]
+    public async Task<IActionResult> getAllTags()
+    {
+        return Ok(_context.Tags.Select(x => x.Name).ToList());
+    }
+
 
 }
