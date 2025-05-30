@@ -90,7 +90,7 @@ public class UserController : ControllerBase
         .ThenInclude(b => b.Blog)
         .FirstOrDefaultAsync(u => u.Id == user.Id);
 
-        if (user == null)
+        if (user1 == null)
         {
             return NotFound("User not found");
         }
@@ -128,9 +128,10 @@ public class UserController : ControllerBase
 
 
     [HttpPost("uploadImage")]
-    public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string frontEndUrl)
+    public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] string frontEndUrl, [FromForm] string userId)
     {
-        string path1 = await _userService.UploadImage(file, frontEndUrl);
+        string path1 = await _userService.UploadImage(file, frontEndUrl, userId);
+
 
         if (path1 == "File is too large")
         {
@@ -141,15 +142,19 @@ public class UserController : ControllerBase
             return NotFound(path1);
         }
 
+        Console.WriteLine("no problem");
+
         return Ok(new { imageUrl = path1 });
     }
 
 
 
     [HttpPost("resetProfileImage")]
-    public async Task<IActionResult> ResetProfileImage()
+    public async Task<IActionResult> ResetProfileImage([FromBody] string userId )
     {
-        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+        ApplicationUser user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+
+        Console.WriteLine("The user is " + user);
 
         if (user == null)
         {
@@ -174,8 +179,7 @@ public class UserController : ControllerBase
 
         if (ModelState.IsValid)
         {
-
-            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+            ApplicationUser user = await _context.Users.FirstOrDefaultAsync(x => x.UserName == model.CurrentName);
 
             if (user == null)
             {
@@ -207,10 +211,10 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("deleteProfile")]
-    public async Task<IActionResult> DeleteProfile()
+    public async Task<IActionResult> DeleteProfile([FromBody] string userId)
     {
 
-        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+        ApplicationUser user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
 
         if (user == null)
         {
@@ -291,6 +295,33 @@ public class UserController : ControllerBase
         }
 
         return Ok();
+    }
+
+
+    [HttpPost("getUserInfoByByBlogId")]
+    public async Task<IActionResult> GetUserInfoByBlogId([FromBody] int blogId)
+    {
+        ApplicationUser user = await _userService.GetUserInfoByBlogId(blogId);
+
+        if (user == null)
+        {
+            return NotFound("User is not found");
+        }
+
+        return Ok(new
+        {
+            name = user.UserName,
+            email = user.Email,
+            accountType = (int)user.AccountType,
+            imageUrl = user.ImageUrl,
+            bio = user.Bio,
+            country = user.Country,
+            fullName = user.FullName,
+            id = user.Id,
+            likedComments = user.LikedComments.Select(x => x.Comment.Id).ToList(),
+            dislikedComments = user.DislikedComments.Select(x => x.Comment.Id).ToList(),
+            likedBlogs = user.LikedBlogs.Select(x => x.Blog.Id).ToList(),
+        });
     }
 
 

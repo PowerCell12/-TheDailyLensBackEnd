@@ -7,7 +7,7 @@ namespace server.Contracts;
 public interface IUserService
 {
 
-    Task<string> UploadImage(IFormFile file, string frontEndUrl);
+    Task<string> UploadImage(IFormFile file, string frontEndUrl, string userId);
 
     Task<bool> ResetProfileImage(ApplicationUser user);
 
@@ -18,6 +18,8 @@ public interface IUserService
     Task<List<PostedComments>> GetPostedComments(string id);
 
     Task<List<ApplicationUser>> GetAllUsers();
-    
+
     Task<bool> UpdateAccountTypeForUsers(List<ApplicationUserModel> users);
+    
+    Task<ApplicationUser> GetUserInfoByBlogId(int blogId);
 }

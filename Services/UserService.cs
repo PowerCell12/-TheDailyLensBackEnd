@@ -12,22 +12,19 @@ public class UserService : IUserService
 
     private readonly TheDailyLensContext _context;
 
-    private readonly IJwtTokenService _jwtTokenService;
-
     private readonly UserManager<ApplicationUser> _userManager;
 
     private readonly string[] notProfilePicture = ["CreateBlog", "ShowComment"];
 
 
-    public UserService(TheDailyLensContext context, IJwtTokenService jwtTokenService, UserManager<ApplicationUser> userManager)
+    public UserService(TheDailyLensContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
-        _jwtTokenService = jwtTokenService;
         _userManager = userManager;
     }
 
 
-    public async Task<string> UploadImage(IFormFile file, string frontEndUrl)
+    public async Task<string> UploadImage(IFormFile file, string frontEndUrl, string userId)
     {
         string path;
         string path1;
@@ -63,7 +60,8 @@ public class UserService : IUserService
 
         if (!notProfilePicture.Contains(frontEndUrl))
         {
-            ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+            ApplicationUser user = await _context.Users.FindAsync(userId);
+            
 
             if (user == null)
             {
@@ -185,5 +183,23 @@ public class UserService : IUserService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<ApplicationUser> GetUserInfoByBlogId(int blogId)
+    {
+
+        string authorId = _context.Blogs.Include(x => x.Author).FirstOrDefaultAsync(x => x.Id == blogId).Result.AuthorId;
+
+        ApplicationUser user = await _context.Users
+        .Include(u => u.LikedComments)
+        .ThenInclude(c => c.Comment)
+        .Include(u => u.DislikedComments)
+        .ThenInclude(c => c.Comment)
+        .Include(u => u.LikedBlogs)
+        .ThenInclude(b => b.Blog)
+        .FirstOrDefaultAsync(x => x.Id == authorId);
+
+        return user;
+
     }
 }
