@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +51,7 @@ public class UserController : ControllerBase
 
         if (user == null)
         {
-            return NotFound("User not found");
+            return NotFound(new { message = "User not found" });
         }
 
         return Ok(new
@@ -77,7 +78,7 @@ public class UserController : ControllerBase
 
         if (user == null)
         {
-            return NotFound("User not found");
+            return NotFound(new { message = "User not found" });
         }
 
 
@@ -92,7 +93,7 @@ public class UserController : ControllerBase
 
         if (user1 == null)
         {
-            return NotFound("User not found");
+            return NotFound(new { message = "User not found" });
         }
 
         return Ok(new
@@ -118,6 +119,11 @@ public class UserController : ControllerBase
 
         ApplicationUser user = await _userManager.FindByIdAsync(authorId);
 
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
         return Ok(new
         {
             name = user.UserName,
@@ -135,14 +141,12 @@ public class UserController : ControllerBase
 
         if (path1 == "File is too large")
         {
-            return BadRequest(path1);
+            return BadRequest(new { message = path1 });
         }
         else if (path1 == "Not Found")
         {
-            return NotFound(path1);
+            return NotFound(new { message = path1 });
         }
-
-        Console.WriteLine("no problem");
 
         return Ok(new { imageUrl = path1 });
     }
@@ -150,22 +154,21 @@ public class UserController : ControllerBase
 
 
     [HttpPost("resetProfileImage")]
-    public async Task<IActionResult> ResetProfileImage([FromBody] string userId )
+    public async Task<IActionResult> ResetProfileImage([FromBody] string userId)
     {
         ApplicationUser user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
 
-        Console.WriteLine("The user is " + user);
 
         if (user == null)
         {
-            return NotFound("User not found");
+            return NotFound(new { message = "User not found" });
         }
 
         bool result = await _userService.ResetProfileImage(user);
 
         if (!result)
         {
-            return BadRequest("There was an error, please try again");
+            return BadRequest(new { message = "There was an error, please try again" });
         }
 
         return Ok();
@@ -174,6 +177,7 @@ public class UserController : ControllerBase
 
 
     [HttpPost("editProfile")]
+    [Authorize]
     public async Task<IActionResult> EditProfile([FromBody] EditProfiileModel model)
     {
 
@@ -183,14 +187,14 @@ public class UserController : ControllerBase
 
             if (user == null)
             {
-                return NotFound("User not found");
+                return NotFound(new { message = "User not found" });
             }
 
             bool result = await _userService.EditProfile(model, user);
 
             if (!result)
             {
-                return BadRequest("There was an error, please try again");
+                return BadRequest(new { message = "There was an error, please try again" });
             }
 
             return Ok(new
@@ -204,13 +208,15 @@ public class UserController : ControllerBase
         }
         else
         {
-            return BadRequest(new { Message = "There was an error, please try again", Errors = ModelState.GetErrors() });
+            return BadRequest(new { message = "There was an error, please try again", Errors = ModelState.GetErrors() });
         }
 
 
     }
 
+
     [HttpDelete("deleteProfile")]
+    [Authorize]
     public async Task<IActionResult> DeleteProfile([FromBody] string userId)
     {
 
@@ -218,7 +224,7 @@ public class UserController : ControllerBase
 
         if (user == null)
         {
-            return NotFound("User not found");
+            return NotFound(new { message = "User not found" });
         }
 
         await _context.Entry(user).Collection(x => x.LikedBlogs).LoadAsync();
@@ -231,7 +237,7 @@ public class UserController : ControllerBase
 
         if (!result)
         {
-            return BadRequest("There was an error, please try again");
+            return BadRequest(new { message = "There was an error, please try again" });
         }
 
         return Ok();
@@ -240,6 +246,7 @@ public class UserController : ControllerBase
 
 
     [HttpGet("{userName}/getBlogsByUser")]
+    [Authorize]
     public async Task<IActionResult> GetBlogsByUser([FromRoute] string userName)
     {
         List<HomePageBlogData> blogs = _blogService.GetBlogsByUserId(userName);
@@ -248,13 +255,14 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("{userName}/getLikedBlogs")]
+    [Authorize]
     public async Task<IActionResult> GetLikedBlogs([FromRoute] string userName)
     {
         List<HomePageBlogData> blogs = await _blogService.getLikedBlogsByUserId(userName);
 
         if (blogs == null)
         {
-            return NotFound("User not found");
+            return NotFound(new { message = "User not found" });
         }
 
         return Ok(blogs);
@@ -262,13 +270,14 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("postedComments/{id}")]
+    [Authorize]
     public async Task<IActionResult> GetPostedComments([FromRoute] string id)
     {
         List<PostedComments> comments = await _userService.GetPostedComments(id);
 
         if (comments == null)
         {
-            return NotFound("User not found");
+            return NotFound(new { message = "User not found or has no comments" });
         }
 
         return Ok(comments);
@@ -285,13 +294,22 @@ public class UserController : ControllerBase
 
 
     [HttpPost("updateAccountTypeForUsers")]
+    [Authorize]
     public async Task<IActionResult> UpdateAccountTypeForUsers([FromBody] List<ApplicationUserModel> users)
     {
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+
+        if (user.AccountType == null || user.AccountType != AccountType.Admin)
+        {
+            return Forbid();
+        }
+
+
         bool result = await _userService.UpdateAccountTypeForUsers(users);
 
         if (result == false)
         {
-            return BadRequest("There was an error, please try again");
+            return BadRequest(new { message = "There was an error, please try again" });
         }
 
         return Ok();
@@ -305,7 +323,7 @@ public class UserController : ControllerBase
 
         if (user == null)
         {
-            return NotFound("User is not found");
+            return NotFound(new { message = "User is not found" });
         }
 
         return Ok(new
@@ -322,6 +340,37 @@ public class UserController : ControllerBase
             dislikedComments = user.DislikedComments.Select(x => x.Comment.Id).ToList(),
             likedBlogs = user.LikedBlogs.Select(x => x.Blog.Id).ToList(),
         });
+    }
+
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordModel model)
+    {
+        // NEEDS SECURITY WITH TOKENS
+
+        bool isValid = await _userService.ResetPassword(model);
+
+
+        if (!isValid)
+        {
+            return BadRequest(new { message = "There was an error resetting the password." });
+        }
+
+        return Ok(new { message = "Password reset successfully" });
+    }
+
+
+    [HttpGet("email/{email}")]
+    public async Task<IActionResult> GetUserByEmail([FromRoute] string email)
+    {
+        ApplicationUser user = await _userService.GetUserByEmail(email);
+
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        return Ok(user);
     }
 
 

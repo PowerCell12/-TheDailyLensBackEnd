@@ -20,6 +20,10 @@ public interface IUserService
     Task<List<ApplicationUser>> GetAllUsers();
 
     Task<bool> UpdateAccountTypeForUsers(List<ApplicationUserModel> users);
-    
+
     Task<ApplicationUser> GetUserInfoByBlogId(int blogId);
+
+    Task<bool> ResetPassword(ResetPasswordModel model);
+
+    Task<ApplicationUser> GetUserByEmail(string email);
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server.Contracts;
 using server.Data;
@@ -9,6 +10,7 @@ namespace server.Controllers;
 
 [ApiController]
 [Route("comment")]
+[Authorize]
 public class CommentController : ControllerBase{
 
     private readonly IJwtTokenService _jwtTokenService;
@@ -25,14 +27,14 @@ public class CommentController : ControllerBase{
     public async Task<IActionResult> CreateComment([FromBody] CommentModel data){
         
         if (!ModelState.IsValid){
-            return BadRequest("Validation failed");
+            return BadRequest(new { message = "Validation failed" } );
         }
 
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
 
         Comment comment = await _commentService.CreateComment(data, data.Id, user);
 
-        if (comment == null) return BadRequest("Can't create the comment, try again");
+        if (comment == null) return BadRequest(new { message = "Can't create the comment, try again" });
 
         return Ok(comment);
     }
@@ -41,12 +43,12 @@ public class CommentController : ControllerBase{
     public async Task<IActionResult> UpdateComment([FromBody] CommentModel data){
 
         if (!ModelState.IsValid){
-            return BadRequest("Validation failed");
+            return BadRequest(new { message = "Validation failed" } );
         }
 
         bool isUpdated = await _commentService.UpdateComment(data);
 
-        if (!isUpdated) return BadRequest("Can't update the comment, try again");
+        if (!isUpdated) return BadRequest(new { message = "Can't update the comment, try again" });
 
         return Ok();
     }
@@ -56,7 +58,7 @@ public class CommentController : ControllerBase{
     [HttpPost("{id}/like")]
     public async Task<IActionResult> LikeComment([FromRoute] int id, [FromBody] LikeDislikeRequest model){
         if (!ModelState.IsValid){
-            return BadRequest("Validation failed");
+            return BadRequest(new { message = "Validation failed" });
         }
 
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
@@ -72,7 +74,7 @@ public class CommentController : ControllerBase{
     public async Task<IActionResult> DislikeComment([FromRoute] int id, [FromBody] LikeDislikeRequest model){
     
         if( !ModelState.IsValid){
-            return BadRequest("Validation failed");
+            return BadRequest(new { message = "Validation failed" });
         }
 
         ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
@@ -87,21 +89,21 @@ public class CommentController : ControllerBase{
     public async Task<IActionResult> DeleteComment([FromRoute] int id){
         bool isDeleted = await _commentService.DeleteComment(id);
 
-        if (!isDeleted) return BadRequest("Can't delete the comment, try again");
+        if (!isDeleted) return BadRequest(new { message = "Can't delete the comment, try again" });
 
         return Ok();
     }
 
     [HttpPost("reply")]
-    public async Task<IActionResult> CreateReply([FromBody] ReplyModel model ){
+    public async Task<IActionResult> CreateReply([FromBody] ReplyModel model) {
 
-        if (!ModelState.IsValid){
-            return BadRequest("Validation failed");
+        if (!ModelState.IsValid) {
+            return BadRequest(new { message = "Validation failed" });
         }
 
         Comment comment = await _commentService.CreateReply(model);
 
-        if (comment == null) return BadRequest("Can't create the reply, try again");
+        if (comment == null) return BadRequest(new { message = "Can't create the reply, try again" });
 
         return Ok(comment);
     }

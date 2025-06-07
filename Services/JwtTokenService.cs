@@ -25,10 +25,9 @@ public class JwtTokenService : IJwtTokenService
 
 
 
-    public  async Task<string> GenerateJwtToken(string Email){
+    public  async Task<string> GenerateJwtToken(string userName){
 
-                var result1 = await _userManager.FindByEmailAsync(Email);
-
+                var result1 = await _userManager.FindByNameAsync(userName);
                 
                 var issuer = _configuration["Jwt:Issuer"];
 
@@ -42,7 +41,7 @@ public class JwtTokenService : IJwtTokenService
                     Subject = new ClaimsIdentity(
                     [
                         new Claim("Id", result1.Id),
-                        new Claim(JwtRegisteredClaimNames.Email, Email),
+                        new Claim(JwtRegisteredClaimNames.Email, result1.Email),
                         new Claim(JwtRegisteredClaimNames.Jti,
                         Guid.NewGuid().ToString())
                     ]),

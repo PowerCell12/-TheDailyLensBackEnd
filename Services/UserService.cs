@@ -15,12 +15,13 @@ public class UserService : IUserService
     private readonly UserManager<ApplicationUser> _userManager;
 
     private readonly string[] notProfilePicture = ["CreateBlog", "ShowComment"];
+    private readonly SignInManager<ApplicationUser> _signInManager;
 
-
-    public UserService(TheDailyLensContext context, UserManager<ApplicationUser> userManager)
+    public UserService(TheDailyLensContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
     {
         _context = context;
         _userManager = userManager;
+        _signInManager = signInManager;
     }
 
 
@@ -61,7 +62,7 @@ public class UserService : IUserService
         if (!notProfilePicture.Contains(frontEndUrl))
         {
             ApplicationUser user = await _context.Users.FindAsync(userId);
-            
+
 
             if (user == null)
             {
@@ -101,8 +102,9 @@ public class UserService : IUserService
 
     public async Task<bool> EditProfile(EditProfiileModel model, ApplicationUser user)
     {
-        user.UserName = model.UserName;
-        user.Email = model.Email;
+        await _userManager.SetUserNameAsync(user, model.UserName);
+        await _userManager.SetEmailAsync(user, model.Email);
+        await _userManager.UpdateAsync(user);
         user.FullName = model.FullName;
         user.Country = model.Country;
         user.Bio = model.Bio;
@@ -202,4 +204,44 @@ public class UserService : IUserService
         return user;
 
     }
+
+    public async Task<bool> ResetPassword(ResetPasswordModel model)
+    {
+
+        ApplicationUser user = await _context.Users
+        .FirstOrDefaultAsync(u => u.Email == model.Email);
+
+        Console.WriteLine("The user is " + model.Email);
+
+        if (user == null)
+        {
+            return false;
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, model.Password);
+
+        if (result.Succeeded)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+
+    }
+
+
+    public async Task<ApplicationUser> GetUserByEmail(string email)
+    {
+        return await _context.Users.Include(u => u.LikedComments)
+        .ThenInclude(c => c.Comment)
+        .Include(u => u.DislikedComments)
+        .ThenInclude(c => c.Comment)
+        .Include(u => u.LikedBlogs)
+        .ThenInclude(b => b.Blog)
+        .FirstOrDefaultAsync(x => x.Email == email);
+    }
+    
 }

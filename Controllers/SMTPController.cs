@@ -1,13 +1,13 @@
-using System.Net.Mail;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using server.Contracts;
 using server.Models.SMTPModels;
-using static server.Models.ProjectEnum;
 
 namespace server.Controllers;
 
 [ApiController]
 [Route("SMTP")]
+[Authorize]
 public class SMPTController : ControllerBase
 {
 
@@ -28,13 +28,24 @@ public class SMPTController : ControllerBase
         return true;
     }
 
+    [HttpPost("sendSingleEmail")]
+    [AllowAnonymous]
+    public async Task<bool> SendSingleEmail([FromBody] sendEmail data)
+    {
+        bool isSent = await SMTPService.SendSingleEmail(data);
+
+        if (!isSent) return false;
+
+        return true;
+    }
+
 
     [HttpGet("isSubscribed/{email}")]
-    public async Task<bool> IsSubscribed([FromRoute] string email)
+    public async Task<IActionResult> IsSubscribed([FromRoute] string email)
     {
         bool isSubscribed = await SMTPService.IsSubscribed(email);
 
-        return isSubscribed;
+        return Ok(new { isSubscribed });
     }
 
 

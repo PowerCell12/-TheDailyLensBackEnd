@@ -57,7 +57,7 @@ public class SMTPService : ISMTPService
             string username = configuration[$"{smtpSettings}:{SmtpSettings.Username}"];
             string password = configuration[$"{smtpSettings}:{SmtpSettings.Password}"];
 
-              port = port is > 0 and < 65536 ? port : 587;
+            port = port is > 0 and < 65536 ? port : 587;
 
             using var smtpClient = new SmtpClient(host)
             {
@@ -102,5 +102,50 @@ public class SMTPService : ISMTPService
         }
     }
 
+    public async Task<bool> SendSingleEmail(sendEmail data)
+    {
+        try
+        {
+            string smtpSettings = SmtpSettings.SmtpSettings.ToString();
+            string host = configuration[$"{smtpSettings}:{SmtpSettings.Host}"];
+            _ = int.TryParse(configuration[$"{smtpSettings}:{SmtpSettings.Port}"], out int port);
+            string username = configuration[$"{smtpSettings}:{SmtpSettings.Username}"];
+            string password = configuration[$"{smtpSettings}:{SmtpSettings.Password}"];
 
+            port = port is > 0 and < 65536 ? port : 587;
+
+            using var smtpClient = new SmtpClient(host)
+            {
+                Port = port,
+                Credentials = new System.Net.NetworkCredential(username, password),
+                EnableSsl = true
+            };
+
+            using var mailMessage = new MailMessage
+            {
+                From = new MailAddress(username, "The Daily Lens"),
+                Subject = data.subject,
+                Body = data.body,
+                IsBodyHtml = true
+            };
+
+            mailMessage.To.Add(new MailAddress(data.currentEmail));
+
+            if (mailMessage.To.Count == 0)
+            {
+                return false;
+            }
+
+            await smtpClient.SendMailAsync(mailMessage);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending email: {ex.Message}");
+            return false;
+        }
+    }
+    
+    
 }

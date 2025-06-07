@@ -4,9 +4,7 @@ using server.Data;
 using server.Models.BlogModels;
 using server.Data.Models.Comments;
 using server.Models.UserModels;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json.Schema;
+using Microsoft.AspNetCore.Authorization;
 
 namespace server.Controllers;
 
@@ -33,17 +31,18 @@ public class BlogController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> CreateBlog([FromBody] CreateBlogModel data)
     {
 
         if (!ModelState.IsValid)
         {
-            return BadRequest("Validation failed");
+            return BadRequest(new { message = "Validation failed" });
         }
 
         int blogId = await _blogService.CreateBlog(data);
 
-        if (blogId == -1 || blogId == null) return BadRequest("Blog can't be created");
+        if (blogId == -1 || blogId == null) return BadRequest(new { message =  "Blog can't be created" });
 
         return Ok(blogId);
     }
@@ -55,7 +54,7 @@ public class BlogController : ControllerBase
 
         if (amount < 1) amount = 10;
 
-        if (!validBlogTypes.Contains(type)) return BadRequest("Invalid blog type");
+        if (!validBlogTypes.Contains(type)) return BadRequest(new { message = "Invalid blog type" } );
 
         List<HomePageBlogData> blogs = _blogService.GetBlogsByParam(amount, type);
 
@@ -63,22 +62,24 @@ public class BlogController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize]
     public async Task<IActionResult> DeleteBlog([FromRoute] int id)
     {
         bool isDeleted = await _blogService.DeleteBlog(id);
 
-        if (!isDeleted) return BadRequest("Blog not found");
+        if (!isDeleted) return BadRequest(new { message = "Blog not found" });
 
         return Ok("Blog deleted");
     }
 
     [HttpPatch("{id}")]
+    [Authorize]
     public async Task<IActionResult> UpdateBlog([FromRoute] int id, [FromBody] UpdateBlogModel data)
     {
 
         bool isUpdated = await _blogService.UpdateBlog(id, data);
 
-        if (!isUpdated) return BadRequest("Blog can't be updated");
+        if (!isUpdated) return BadRequest(new { message = "Blog can't be updated" } );
 
         return Ok("Blog updated");
 
@@ -89,7 +90,7 @@ public class BlogController : ControllerBase
     {
         HomePageBlogData blog = _blogService.GetBlogByTitle(id);
 
-        if (blog == null) return BadRequest("Blog not found");
+        if (blog == null) return BadRequest(new { message = "Blog not found" });
 
         return Ok(blog);
     }
@@ -100,12 +101,13 @@ public class BlogController : ControllerBase
     {
         List<Comment> comments = _blogService.GetCommentsByBlogId(id).OrderByDescending(x => x.CreatedAt).ToList();
 
-        if (comments == null) return BadRequest("Blog not found");
+        if (comments == null) return BadRequest(new { message = "Blog not found" } );
 
         return Ok(comments);
     }
 
     [HttpPost("{id}/like")]
+    [Authorize]
     public async Task<IActionResult> LikeBlog([FromRoute] int id, [FromBody] LikeBlog data)
     {
 
@@ -113,7 +115,7 @@ public class BlogController : ControllerBase
 
         int likes = await _blogService.LikeBlog(id, user, data.Liked);
 
-        if (likes == -2) return BadRequest("Blog not found");
+        if (likes == -2) return BadRequest(new { message  ="Blog not found" } );
 
         return Ok(likes);
     }
