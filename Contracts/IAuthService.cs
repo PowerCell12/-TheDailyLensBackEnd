@@ -1,3 +1,4 @@
+using server.Data;
 using server.Models.AuthModels;
 
 namespace server.Services
@@ -6,6 +7,8 @@ namespace server.Services
     {
 
         public Task<bool> CreateUser(AuthFormModel model);
+
+        public Task<(ApplicationUser, bool)> GetOrCreateUserFromGoogle(string email);
 
     }
 }

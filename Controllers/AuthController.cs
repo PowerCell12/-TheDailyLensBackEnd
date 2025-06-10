@@ -1,10 +1,17 @@
 namespace server.Controllers;
 
+using System.Data.Common;
+using System.Drawing.Imaging;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq.Expressions;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using server.Contracts;
 using server.Data;
 using server.Extentions;
@@ -13,7 +20,7 @@ using server.Services;
 
 [ApiController]
 [Route("auth")]
-public class AuthenticationController: ControllerBase 
+public class AuthenticationController : ControllerBase
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IJwtTokenService _jwtTokenService;
@@ -44,7 +51,7 @@ public class AuthenticationController: ControllerBase
         {
             ApplicationUser user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email);
 
-            var result = await _signInManager.PasswordSignInAsync(user.UserName, model.Password, false, lockoutOnFailure: false); 
+            var result = await _signInManager.PasswordSignInAsync(user.UserName, model.Password, false, lockoutOnFailure: false);
             if (result.Succeeded)
             {
                 string stringToken = await _jwtTokenService.GenerateJwtToken(user.UserName);
@@ -57,7 +64,7 @@ public class AuthenticationController: ControllerBase
                 return BadRequest(new { message = "Logging in the user failed", Errors = UserFailedError });
             }
         }
-        
+
         var DataErrros = ModelState.GetErrors();
 
         return Unauthorized(new { message = "Validation failed", Errors = DataErrros });
@@ -66,25 +73,29 @@ public class AuthenticationController: ControllerBase
 
 
     [HttpPost("register")]
-    public async Task<IActionResult> RegisterPost([FromBody] AuthFormModel model){
+    public async Task<IActionResult> RegisterPost([FromBody] AuthFormModel model)
+    {
 
-        if (ModelState.IsValid){
+        if (ModelState.IsValid)
+        {
             bool createdUser = await _authService.CreateUser(model);
 
-            if (createdUser){
+            if (createdUser)
+            {
                 var stringToken = await _jwtTokenService.GenerateJwtToken(model.Email);
-                return Ok(new { token = stringToken } );
+                return Ok(new { token = stringToken });
             }
-            else{
+            else
+            {
                 var creatingUserErrors = ModelState.GetErrors();
 
                 return BadRequest(new { message = "Username or Gmail is already in use", Errors = creatingUserErrors });
             }
 
         }
- 
+
         var DataErrros = ModelState.GetErrors();
-        
+
         return Unauthorized(new { message = "Validation failed", Errors = DataErrros });
     }
 
@@ -109,7 +120,7 @@ public class AuthenticationController: ControllerBase
         var isValid = await _jwtTokenService.ValidateJwtToken(token);
         if (!isValid)
         {
-            return Unauthorized(new { message = "Invalid token" } );
+            return Unauthorized(new { message = "Invalid token" });
         }
 
 
@@ -133,6 +144,71 @@ public class AuthenticationController: ControllerBase
 
 
     }
+
+
+    [HttpGet("google-login")]
+    public async Task<IActionResult> GoogleLogin()
+    {
+
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = Url.Action("GoogleCallback")
+        };
+
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+
+
+    [HttpGet("google-callback")]
+    public async Task<IActionResult> GoogleCallback()
+    {
+
+        var authResult = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+
+        if (!authResult.Succeeded)
+        {
+            return Redirect($"http://localhost:5173/error/{401}/{Uri.EscapeDataString("Google authorization failed")}");
+        }
+
+        var email = authResult.Principal.FindFirstValue(ClaimTypes.Email);
+
+        try
+        {
+            var (user, GotCreated) = await _authService.GetOrCreateUserFromGoogle(email);
+
+            var token = await _jwtTokenService.GenerateJwtToken(user.UserName);
+
+            if (!GotCreated)
+            {
+                return Redirect($"http://localhost:5173/auth-callback?token={Uri.EscapeDataString(token)}&isNewUser={GotCreated}");
+            }
+            else
+            {
+                var obj = new
+                {
+                    name = user.UserName,
+                    email = user.Email,
+                    accountType = (int)user.AccountType,
+                    imageUrl = user.ImageUrl,
+                    bio = user.Bio,
+                    country = user.Country,
+                    fullName = user.FullName,
+                    id = user.Id,
+                    likedComments = user.LikedComments.Select(x => x.Comment.Id).ToList(),
+                    dislikedComments = user.DislikedComments.Select(x => x.Comment.Id).ToList(),
+                    likedBlogs = user.LikedBlogs.Select(x => x.Blog.Id).ToList(),
+                };
+
+                return Redirect($"http://localhost:5173/auth-callback?token={Uri.EscapeDataString(token)}&user={Uri.EscapeDataString(JsonConvert.SerializeObject(obj))}&isNewUser={GotCreated}");
+            }
+        }
+        catch (Exception ex)
+        {
+            return Redirect($"http://localhost:5173/error/{400}/{Uri.EscapeDataString("An error occurred while processing the request")}");
+        }
+
+    }
+
 
 }
 
