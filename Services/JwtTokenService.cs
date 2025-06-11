@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using server.Contracts;
@@ -28,7 +29,8 @@ public class JwtTokenService : IJwtTokenService
     public  async Task<string> GenerateJwtToken(string userName){
 
                 var result1 = await _userManager.FindByNameAsync(userName);
-                
+                result1 ??= await _userManager.FindByEmailAsync(userName);
+
                 var issuer = _configuration["Jwt:Issuer"];
 
                 var audience = _configuration["Jwt:Audience"];

@@ -5,6 +5,7 @@ using server.Models.BlogModels;
 using server.Data.Models.Comments;
 using server.Models.UserModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace server.Controllers;
 
@@ -65,6 +66,13 @@ public class BlogController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DeleteBlog([FromRoute] int id)
     {
+        ApplicationUser user = await _jwtTokenService.GetUserByJwtToken();
+
+        string IdCreatorOfBlog =  _context.Blogs.Include(x => x.Author).Where(x => x.Id == id).FirstOrDefault().AuthorId;
+
+        if (user.AccountType != AccountType.Admin && IdCreatorOfBlog != user.Id) return BadRequest(new { message = "You can't delete this blog" } );
+
+
         bool isDeleted = await _blogService.DeleteBlog(id);
 
         if (!isDeleted) return BadRequest(new { message = "Blog not found" });

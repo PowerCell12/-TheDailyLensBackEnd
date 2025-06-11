@@ -15,13 +15,11 @@ public class UserService : IUserService
     private readonly UserManager<ApplicationUser> _userManager;
 
     private readonly string[] notProfilePicture = ["CreateBlog", "ShowComment"];
-    private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public UserService(TheDailyLensContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+    public UserService(TheDailyLensContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _userManager = userManager;
-        _signInManager = signInManager;
     }
 
 
@@ -58,11 +56,13 @@ public class UserService : IUserService
             await file.CopyToAsync(stream);
         }
 
+        // COnsole
 
         if (!notProfilePicture.Contains(frontEndUrl))
         {
             ApplicationUser user = await _context.Users.FindAsync(userId);
 
+            Console.WriteLine("The user name is " + user.ImageUrl);
 
             if (user == null)
             {
